@@ -308,6 +308,10 @@ func compare[T cmp.Ordered](a T, b any) (int, bool) {
 	case T:
 		return cmp.Compare(a, b), true
 	default:
+		if bc, ok := b.(Comparer); ok {
+			c, ok := bc.Compare(a)
+			return -c, ok
+		}
 		return 0, false
 	}
 }
