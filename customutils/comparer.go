@@ -18,6 +18,9 @@ func NewCaster(v any) caster {
 	if c, ok := v.(caster); ok {
 		return c
 	}
+	if c, ok := v.(Comparer); ok {
+		return comparerCaster{Comparer: c}
+	}
 	switch v := v.(type) {
 	case bool:
 		return boolCaster(v)
@@ -211,6 +214,14 @@ func (t timeCaster) Compare(other any) (int, bool) { return compareTime(time.Tim
 
 // cast implements caster.
 func (t timeCaster) cast() any { return time.Time(t) }
+
+// comparerCaster implements caster.
+type comparerCaster struct {
+	Comparer
+}
+
+// cast implements caster.
+func (cc comparerCaster) cast() any { return cc.Comparer }
 
 // NewInterfaceCaster returns a new valid instance of Any.
 func NewInterfaceCaster(v any) *Any {
