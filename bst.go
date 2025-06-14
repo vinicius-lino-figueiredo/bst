@@ -158,7 +158,7 @@ func (b *BinarySearchTree) CheckNodeOrdering() error {
 	var err error
 	if b.left != nil {
 		err = b.left.CheckAllNodesFullfillCondition(func(k any, _ any) error {
-			if b.compareKeys(k, b.key) >= 0 {
+			if b.compareKeys(k, customutils.Retrieve(b.key)) >= 0 {
 				return fmt.Errorf("Tree with root %v is not a binary search tree", b.key)
 			}
 			return nil
@@ -174,7 +174,7 @@ func (b *BinarySearchTree) CheckNodeOrdering() error {
 
 	if b.right != nil {
 		err = b.right.CheckAllNodesFullfillCondition(func(k any, _ any) error {
-			if b.compareKeys(k, b.key) <= 0 {
+			if b.compareKeys(k, customutils.Retrieve(b.key)) <= 0 {
 				return fmt.Errorf("Tree with root %v is not a binary search tree", b.key)
 			}
 			return nil
@@ -289,7 +289,7 @@ func (b *BinarySearchTree) Insert(key any, value any) error {
 	}
 
 	// Same key as root
-	if b.compareKeys(b.key, key) == 0 {
+	if b.compareKeys(b.key, customutils.Retrieve(b.key)) == 0 {
 		if b.unique {
 			return &ErrViolated{key: key}
 		}
@@ -298,7 +298,7 @@ func (b *BinarySearchTree) Insert(key any, value any) error {
 	}
 
 	var err error
-	if b.compareKeys(k, b.key) < 0 {
+	if b.compareKeys(k, customutils.Retrieve(b.key)) < 0 {
 		// Insert in left subtree
 		if b.left != nil {
 			if err = b.left.Insert(key, value); err != nil {
@@ -331,7 +331,7 @@ func (b *BinarySearchTree) Search(key any) []any {
 	}
 
 	k := customutils.NewCaster(key)
-	if b.compareKeys(k, b.key) < 0 {
+	if b.compareKeys(k, customutils.Retrieve(b.key)) < 0 {
 		if b.left != nil {
 			return b.left.Search(key)
 		}
@@ -506,21 +506,21 @@ func (b *BinarySearchTree) Delete(key any, value any) {
 	}
 
 	k := customutils.NewCaster(key)
-	if b.compareKeys(k, b.key) < 0 {
+	if b.compareKeys(k, customutils.Retrieve(b.key)) < 0 {
 		if b.left != nil {
 			b.left.Delete(key, value)
 		}
 		return
 	}
 
-	if b.compareKeys(k, b.key) > 0 {
+	if b.compareKeys(k, customutils.Retrieve(b.key)) > 0 {
 		if b.right != nil {
 			b.right.Delete(key, value)
 		}
 		return
 	}
 
-	if !(b.compareKeys(k, b.key) == 0) {
+	if !(b.compareKeys(k, customutils.Retrieve(b.key)) == 0) {
 		return
 	}
 
