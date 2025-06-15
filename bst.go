@@ -158,7 +158,7 @@ func (b *BinarySearchTree) CheckNodeOrdering() error {
 	var err error
 	if b.left != nil {
 		err = b.left.CheckAllNodesFullfillCondition(func(k any, _ any) error {
-			if b.compareKeys(k, customutils.Retrieve(b.key)) >= 0 {
+			if b.callCompareKeys(k, b.key) >= 0 {
 				return fmt.Errorf("Tree with root %v is not a binary search tree", b.key)
 			}
 			return nil
@@ -174,7 +174,7 @@ func (b *BinarySearchTree) CheckNodeOrdering() error {
 
 	if b.right != nil {
 		err = b.right.CheckAllNodesFullfillCondition(func(k any, _ any) error {
-			if b.compareKeys(k, customutils.Retrieve(b.key)) <= 0 {
+			if b.callCompareKeys(k, b.key) <= 0 {
 				return fmt.Errorf("Tree with root %v is not a binary search tree", b.key)
 			}
 			return nil
@@ -254,7 +254,7 @@ func (b *BinarySearchTree) GetNumberOfKeys() int {
 // value) to the current one.
 func (b *BinarySearchTree) CreateSimilar(options Options) *BinarySearchTree {
 	options.Unique = b.unique
-	options.CompareKeys = b.compareKeys
+	options.CompareKeys = b.callCompareKeys
 	options.CheckValueEquality = b.checkValueEquality
 
 	return NewBinarySearchTree(options)
@@ -289,7 +289,7 @@ func (b *BinarySearchTree) Insert(key any, value any) error {
 	}
 
 	// Same key as root
-	if b.compareKeys(b.key, customutils.Retrieve(b.key)) == 0 {
+	if b.callCompareKeys(b.key, key) == 0 {
 		if b.unique {
 			return &ErrViolated{key: key}
 		}
@@ -298,7 +298,7 @@ func (b *BinarySearchTree) Insert(key any, value any) error {
 	}
 
 	var err error
-	if b.compareKeys(k, customutils.Retrieve(b.key)) < 0 {
+	if b.callCompareKeys(k, b.key) < 0 {
 		// Insert in left subtree
 		if b.left != nil {
 			if err = b.left.Insert(key, value); err != nil {
@@ -326,12 +326,12 @@ func (b *BinarySearchTree) Search(key any) []any {
 		return []any{}
 	}
 
-	if b.compareKeys(b.key, key) == 0 {
+	if b.callCompareKeys(b.key, key) == 0 {
 		return b.data
 	}
 
 	k := customutils.NewCaster(key)
-	if b.compareKeys(k, customutils.Retrieve(b.key)) < 0 {
+	if b.callCompareKeys(k, b.key) < 0 {
 		if b.left != nil {
 			return b.left.Search(key)
 		}
@@ -353,20 +353,20 @@ func (b *BinarySearchTree) GetLowerBoundMatcher(query map[string]any) func(custo
 
 	if query["$gt"] != nil && query["$gte"] != nil {
 		queryGte := customutils.NewCaster(query["$gte"])
-		if b.compareKeys(queryGte, query["$gt"]) == 0 {
-			return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$gt"]) > 0 }
+		if b.callCompareKeys(queryGte, query["$gt"]) == 0 {
+			return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$gt"]) > 0 }
 		}
 
-		if b.compareKeys(queryGte, query["$gt"]) > 0 {
-			return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$gte"]) >= 0 }
+		if b.callCompareKeys(queryGte, query["$gt"]) > 0 {
+			return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$gte"]) >= 0 }
 		}
-		return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$gt"]) > 0 }
+		return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$gt"]) > 0 }
 	}
 
 	if query["$gt"] != nil {
-		return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$gt"]) > 0 }
+		return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$gt"]) > 0 }
 	}
-	return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$gte"]) >= 0 }
+	return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$gte"]) >= 0 }
 }
 
 // GetUpperBoundMatcher returns a function that tells whether a given key
@@ -379,20 +379,20 @@ func (b *BinarySearchTree) GetUpperBoundMatcher(query map[string]any) func(custo
 
 	if query["$lt"] != nil && query["$lte"] != nil {
 		queryLte := customutils.NewCaster(query["$lte"])
-		if b.compareKeys(queryLte, query["$lt"]) == 0 {
-			return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$lt"]) < 0 }
+		if b.callCompareKeys(queryLte, query["$lt"]) == 0 {
+			return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$lt"]) < 0 }
 		}
 
-		if b.compareKeys(queryLte, query["$lt"]) < 0 {
-			return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$lte"]) <= 0 }
+		if b.callCompareKeys(queryLte, query["$lt"]) < 0 {
+			return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$lte"]) <= 0 }
 		}
-		return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$lt"]) < 0 }
+		return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$lt"]) < 0 }
 	}
 
 	if query["$lt"] != nil {
-		return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$lt"]) < 0 }
+		return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$lt"]) < 0 }
 	}
-	return func(key customutils.Comparer) bool { return b.compareKeys(key, query["$lte"]) <= 0 }
+	return func(key customutils.Comparer) bool { return b.callCompareKeys(key, query["$lte"]) <= 0 }
 }
 
 // BetweenBounds gets all data for a key between bounds and returns it in key
@@ -506,21 +506,21 @@ func (b *BinarySearchTree) Delete(key any, value any) {
 	}
 
 	k := customutils.NewCaster(key)
-	if b.compareKeys(k, customutils.Retrieve(b.key)) < 0 {
+	if b.callCompareKeys(k, b.key) < 0 {
 		if b.left != nil {
 			b.left.Delete(key, value)
 		}
 		return
 	}
 
-	if b.compareKeys(k, customutils.Retrieve(b.key)) > 0 {
+	if b.callCompareKeys(k, b.key) > 0 {
 		if b.right != nil {
 			b.right.Delete(key, value)
 		}
 		return
 	}
 
-	if !(b.compareKeys(k, customutils.Retrieve(b.key)) == 0) {
+	if !(b.callCompareKeys(k, b.key) == 0) {
 		return
 	}
 
@@ -625,6 +625,10 @@ func (b *BinarySearchTree) format(printData bool, spacing string) string {
 		res += fmt.Sprintf("%s  *", spacing)
 	}
 	return res
+}
+
+func (b *BinarySearchTree) callCompareKeys(a, other any) int {
+	return b.compareKeys(customutils.Retrieve(a), customutils.Retrieve(other))
 }
 
 // ================================
