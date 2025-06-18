@@ -323,10 +323,6 @@ func (b *BinarySearchTree) Insert(key any, value any) error {
 
 // Search searches for all data corresponding to a key.
 func (b *BinarySearchTree) Search(key any) []any {
-	if b.key == nil {
-		return []any{}
-	}
-
 	if b.callCompareKeys(b.key, key) == 0 {
 		return b.data
 	}
