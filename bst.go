@@ -285,7 +285,7 @@ func (b *BinarySearchTree) Insert(key any, value any) error {
 	k := customutils.NewCaster(key)
 	if b.key == nil {
 		b.key = k
-		b.data = []any{value}
+		b.data = append(b.data, value)
 		return nil
 	}
 
