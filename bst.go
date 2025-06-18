@@ -54,6 +54,7 @@ func NewBinarySearchTree(options Options) *BinarySearchTree {
 	if options.CompareKeys == nil {
 		b.compareKeys = customutils.DefaultCompareKeysFunction
 	}
+	b.checkValueEquality = options.CheckValueEquality
 	if options.CheckValueEquality == nil {
 		b.checkValueEquality = customutils.DefaultCheckValueEquality
 	}
