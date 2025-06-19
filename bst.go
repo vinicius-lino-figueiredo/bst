@@ -344,7 +344,7 @@ func (b *BinarySearchTree) Search(key any) []any {
 // matches a lower bound.
 func (b *BinarySearchTree) GetLowerBoundMatcher(query map[string]any) func(customutils.Comparer) bool {
 	// No lower bound
-	if query["$gd"] == nil && query["$gte"] == nil {
+	if query["$gt"] == nil && query["$gte"] == nil {
 		return func(customutils.Comparer) bool { return true }
 	}
 
