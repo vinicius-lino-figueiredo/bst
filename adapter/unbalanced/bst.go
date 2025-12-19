@@ -7,14 +7,14 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/vinicius-lino-figueiredo/bst/domain"
+	"github.com/vinicius-lino-figueiredo/bst"
 )
 
 // RecursiveLimit TODO
 var RecursiveLimit = 100000
 
 // NewBST TODO
-func NewBST[K any, V any](unique bool, creationSize int, comparer domain.Comparer[K, V]) domain.BST[K, V] {
+func NewBST[K any, V any](unique bool, creationSize int, comparer bst.Comparer[K, V]) bst.BST[K, V] {
 	if unique {
 		creationSize = 1
 	} else if creationSize <= 0 {
@@ -23,13 +23,13 @@ func NewBST[K any, V any](unique bool, creationSize int, comparer domain.Compare
 	return newBST(unique, creationSize, comparer)
 }
 
-func newBST[K any, V any](unique bool, creationSize int, comparer domain.Comparer[K, V]) *Root[K, V] {
+func newBST[K any, V any](unique bool, creationSize int, comparer bst.Comparer[K, V]) *Root[K, V] {
 	return &Root[K, V]{
 		unique:       unique,
 		creationSize: creationSize,
 		comparer:     comparer,
-		nodePool:     sync.Pool{New: func() any { return &domain.Node[K, V]{} }},
-		Node: domain.Node[K, V]{
+		nodePool:     sync.Pool{New: func() any { return &bst.Node[K, V]{} }},
+		Node: bst.Node[K, V]{
 			Values: make([]V, 0, creationSize),
 		},
 	}
@@ -37,16 +37,16 @@ func newBST[K any, V any](unique bool, creationSize int, comparer domain.Compare
 
 // Root TODO.
 type Root[K any, V any] struct {
-	domain.Node[K, V]
+	bst.Node[K, V]
 	initialized  bool
 	nodeCount    int
 	unique       bool
 	creationSize int
 	nodePool     sync.Pool
-	comparer     domain.Comparer[K, V]
+	comparer     bst.Comparer[K, V]
 }
 
-// Delete implements domain.BST.
+// Delete implements bst.BST.
 func (r *Root[K, V]) Delete(key K, value *V) error {
 	if !r.initialized {
 		return nil
@@ -90,7 +90,7 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 	return nil
 }
 
-func (r *Root[K, V]) deleteDoubleChildrenNode(node *domain.Node[K, V]) {
+func (r *Root[K, V]) deleteDoubleChildrenNode(node *bst.Node[K, V]) {
 	if rand.Float32() > 0.5 {
 		closestNode := r.getMax(node.Lower)
 
@@ -122,7 +122,7 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(node *domain.Node[K, V]) {
 	r.nodeCount--
 }
 
-func (r *Root[K, V]) deleteValue(node *domain.Node[K, V], value *V) error {
+func (r *Root[K, V]) deleteValue(node *bst.Node[K, V], value *V) error {
 	for n, v := range node.Values {
 		found, err := r.comparer.CompareValues(*value, v)
 		if err != nil {
@@ -136,31 +136,31 @@ func (r *Root[K, V]) deleteValue(node *domain.Node[K, V], value *V) error {
 	return nil
 }
 
-// GetMax implements domain.BST.
-func (r *Root[K, V]) GetMax() *domain.Node[K, V] {
+// GetMax implements bst.BST.
+func (r *Root[K, V]) GetMax() *bst.Node[K, V] {
 	return r.getMax(&r.Node)
 }
 
-func (r *Root[K, V]) getMax(node *domain.Node[K, V]) *domain.Node[K, V] {
+func (r *Root[K, V]) getMax(node *bst.Node[K, V]) *bst.Node[K, V] {
 	for node.Greater != nil {
 		node = node.Greater
 	}
 	return node
 }
 
-// GetMin implements domain.BST.
-func (r *Root[K, V]) GetMin() *domain.Node[K, V] {
+// GetMin implements bst.BST.
+func (r *Root[K, V]) GetMin() *bst.Node[K, V] {
 	return r.getMin(&r.Node)
 }
 
-func (r *Root[K, V]) getMin(node *domain.Node[K, V]) *domain.Node[K, V] {
+func (r *Root[K, V]) getMin(node *bst.Node[K, V]) *bst.Node[K, V] {
 	for node.Lower != nil {
 		node = node.Lower
 	}
 	return node
 }
 
-// GetNumberOfKeys implements domain.BST.
+// GetNumberOfKeys implements bst.BST.
 func (r *Root[K, V]) GetNumberOfKeys() int {
 	if !r.initialized {
 		return 0
@@ -168,7 +168,7 @@ func (r *Root[K, V]) GetNumberOfKeys() int {
 	return r.nodeNumberOfKeys(&r.Node)
 }
 
-func (r *Root[K, V]) nodeNumberOfKeys(node *domain.Node[K, V]) int {
+func (r *Root[K, V]) nodeNumberOfKeys(node *bst.Node[K, V]) int {
 	res := 0
 	if node.Lower != nil {
 		res += r.nodeNumberOfKeys(node.Lower)
@@ -179,7 +179,7 @@ func (r *Root[K, V]) nodeNumberOfKeys(node *domain.Node[K, V]) int {
 	return res
 }
 
-// Insert implements domain.BST.
+// Insert implements bst.BST.
 func (r *Root[K, V]) Insert(key K, value V) error {
 	if !r.initialized {
 		r.Key = key
@@ -208,7 +208,7 @@ func (r *Root[K, V]) Insert(key K, value V) error {
 		default:
 			if len(node.Values) != 0 {
 				if r.unique {
-					return domain.ErrUniqueViolated{Key: key}
+					return bst.ErrUniqueViolated{Key: key}
 				}
 			} else {
 				r.nodeCount++
@@ -219,15 +219,15 @@ func (r *Root[K, V]) Insert(key K, value V) error {
 	}
 }
 
-func (r *Root[K, V]) createEmptyNode(key K, parent *domain.Node[K, V]) *domain.Node[K, V] {
-	node := r.nodePool.Get().(*domain.Node[K, V])
+func (r *Root[K, V]) createEmptyNode(key K, parent *bst.Node[K, V]) *bst.Node[K, V] {
+	node := r.nodePool.Get().(*bst.Node[K, V])
 	node.Key = key
 	node.Values = make([]V, 0, r.creationSize)
 	node.Parent = parent
 	return node
 }
 
-func (r *Root[K, V]) doubleQueryRecursive(node *domain.Node[K, V], query domain.Query[K], res *[]V) error {
+func (r *Root[K, V]) doubleQueryRecursive(node *bst.Node[K, V], query bst.Query[K], res *[]V) error {
 	lowerComp, err := r.comparer.CompareKeys(node.Key, query.LowerThan.Value)
 	if err != nil {
 		return err
@@ -297,7 +297,7 @@ func (r *Root[K, V]) doubleQueryRecursive(node *domain.Node[K, V], query domain.
 	return nil
 }
 
-func (r *Root[K, V]) singleQueryRecursive(node *domain.Node[K, V], bound *domain.Bound[K], multiplier int, res *[]V) error {
+func (r *Root[K, V]) singleQueryRecursive(node *bst.Node[K, V], bound *bst.Bound[K], multiplier int, res *[]V) error {
 	comp, err := r.comparer.CompareKeys(bound.Value, node.Key)
 	if err != nil {
 		return err
@@ -355,7 +355,7 @@ func (r *Root[K, V]) singleQueryRecursive(node *domain.Node[K, V], bound *domain
 	return nil
 }
 
-func (r *Root[K, V]) addAnyChildAndSelf(node *domain.Node[K, V], res *[]V) {
+func (r *Root[K, V]) addAnyChildAndSelf(node *bst.Node[K, V], res *[]V) {
 	if node.Lower != nil {
 		r.addAnyChildAndSelf(node.Lower, res)
 	}
@@ -365,8 +365,8 @@ func (r *Root[K, V]) addAnyChildAndSelf(node *domain.Node[K, V], res *[]V) {
 	}
 }
 
-// Query implements domain.BST.
-func (r *Root[K, V]) Query(query domain.Query[K]) ([]V, error) {
+// Query implements bst.BST.
+func (r *Root[K, V]) Query(query bst.Query[K]) ([]V, error) {
 	res := make([]V, 0, r.nodeCount*r.creationSize)
 
 	if err := r.runQuery(query, &res); err != nil {
@@ -376,7 +376,7 @@ func (r *Root[K, V]) Query(query domain.Query[K]) ([]V, error) {
 	return res, nil
 }
 
-func (r *Root[K, V]) runQuery(query domain.Query[K], res *[]V) error {
+func (r *Root[K, V]) runQuery(query bst.Query[K], res *[]V) error {
 	if query.LowerThan != nil {
 		if query.GreaterThan != nil {
 			if r.nodeCount < RecursiveLimit {
@@ -398,8 +398,8 @@ func (r *Root[K, V]) runQuery(query domain.Query[K], res *[]V) error {
 	return nil
 }
 
-func (r *Root[K, V]) doubleQuery(query domain.Query[K], res *[]V) error {
-	nodes := make([]*domain.Node[K, V], 1, r.nodeCount)
+func (r *Root[K, V]) doubleQuery(query bst.Query[K], res *[]V) error {
+	nodes := make([]*bst.Node[K, V], 1, r.nodeCount)
 	nodes[0] = &r.Node
 	lastLen := 1
 	start, end := 0, 1
@@ -438,7 +438,7 @@ func (r *Root[K, V]) doubleQuery(query domain.Query[K], res *[]V) error {
 	}
 }
 
-func (r *Root[K, V]) addChildrenAndSelf(node *domain.Node[K, V], nodes []*domain.Node[K, V], res *[]V, multiplier int, bound *domain.Bound[K]) error {
+func (r *Root[K, V]) addChildrenAndSelf(node *bst.Node[K, V], nodes []*bst.Node[K, V], res *[]V, multiplier int, bound *bst.Bound[K]) error {
 	nodes = nodes[:1]
 	nodes[0] = node
 	lastLen := 1
@@ -476,8 +476,8 @@ func (r *Root[K, V]) addChildrenAndSelf(node *domain.Node[K, V], nodes []*domain
 
 }
 
-func (r *Root[K, V]) singleQuery(query *domain.Bound[K], multiplier int, res *[]V) error {
-	nodes := make([]*domain.Node[K, V], 1, r.nodeCount)
+func (r *Root[K, V]) singleQuery(query *bst.Bound[K], multiplier int, res *[]V) error {
+	nodes := make([]*bst.Node[K, V], 1, r.nodeCount)
 	nodes[0] = &r.Node
 	lastLen := 1
 	start, end := 0, 1
@@ -514,7 +514,7 @@ func (r *Root[K, V]) singleQuery(query *domain.Bound[K], multiplier int, res *[]
 	}
 }
 
-func (r *Root[K, V]) addChildrenAndSelfNoBound(node *domain.Node[K, V], nodes []*domain.Node[K, V], res *[]V) {
+func (r *Root[K, V]) addChildrenAndSelfNoBound(node *bst.Node[K, V], nodes []*bst.Node[K, V], res *[]V) {
 	nodes = nodes[:1]
 	nodes[0] = node
 	lastLen := 1
@@ -540,13 +540,13 @@ func (r *Root[K, V]) addChildrenAndSelfNoBound(node *domain.Node[K, V], nodes []
 
 }
 
-// Search implements domain.BST.
-func (r *Root[K, V]) Search(key K) (*domain.Node[K, V], error) {
+// Search implements bst.BST.
+func (r *Root[K, V]) Search(key K) (*bst.Node[K, V], error) {
 	node, err := r.search(key)
 	return node, err
 }
 
-func (r *Root[K, V]) search(key K) (*domain.Node[K, V], error) {
+func (r *Root[K, V]) search(key K) (*bst.Node[K, V], error) {
 	node := &r.Node
 	for {
 		comparison, err := r.comparer.CompareKeys(key, node.Key)
@@ -567,7 +567,7 @@ func (r *Root[K, V]) search(key K) (*domain.Node[K, V], error) {
 	}
 }
 
-// Update implements domain.BST.
+// Update implements bst.BST.
 func (r *Root[K, V]) Update(key K, old V, nw V) error {
 	node, err := r.search(key)
 	if err != nil || node == nil {
@@ -586,7 +586,7 @@ func (r *Root[K, V]) Update(key K, old V, nw V) error {
 	return nil
 }
 
-// GetAll implements domain.BST.
+// GetAll implements bst.BST.
 func (r *Root[K, V]) GetAll() iter.Seq[V] {
 	return func(yield func(V) bool) {
 		if r.initialized {
@@ -595,7 +595,7 @@ func (r *Root[K, V]) GetAll() iter.Seq[V] {
 	}
 }
 
-func (r *Root[K, V]) yieldNode(node *domain.Node[K, V], yield func(V) bool) {
+func (r *Root[K, V]) yieldNode(node *bst.Node[K, V], yield func(V) bool) {
 	if node.Lower != nil {
 		r.yieldNode(node.Lower, yield)
 	}

@@ -4,11 +4,11 @@ package comparer
 import (
 	"cmp"
 
-	"github.com/vinicius-lino-figueiredo/bst/domain"
+	"github.com/vinicius-lino-figueiredo/bst"
 )
 
 // NewComparer TODO
-func NewComparer[K cmp.Ordered, V comparable]() domain.Comparer[K, V] {
+func NewComparer[K cmp.Ordered, V comparable]() bst.Comparer[K, V] {
 	return Comparer[K, V]{}
 }
 
