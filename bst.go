@@ -1,5 +1,5 @@
-// Package domain TODO
-package domain
+// Package bst TODO
+package bst
 
 import (
 	"fmt"

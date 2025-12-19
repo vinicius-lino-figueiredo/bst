@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+	"github.com/vinicius-lino-figueiredo/bst"
 	"github.com/vinicius-lino-figueiredo/bst/adapter/comparer"
 	"github.com/vinicius-lino-figueiredo/bst/adapter/unbalanced"
-	"github.com/vinicius-lino-figueiredo/bst/domain"
 )
 
 type BSTTestSuite struct {
@@ -93,7 +93,7 @@ func (s *BSTTestSuite) TestInsertNonUnique() {
 	b := unbalanced.NewBST(true, 8, comparer.NewComparer[string, int]())
 
 	s.NoError(b.Insert("unique", 10))
-	s.ErrorAs(b.Insert("unique", 11), &domain.ErrUniqueViolated{})
+	s.ErrorAs(b.Insert("unique", 11), &bst.ErrUniqueViolated{})
 
 }
 
@@ -279,72 +279,72 @@ func (s *BSTTestSuite) TestDeleteRoot() {
 }
 
 func (s *BSTTestSuite) TestSimpleQuery() {
-	data, err := s.b.Query(domain.Query[string]{
-		GreaterThan: &domain.Bound[string]{
+	data, err := s.b.Query(bst.Query[string]{
+		GreaterThan: &bst.Bound[string]{
 			Value: "Zara", IncludeEqual: false,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		GreaterThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		GreaterThan: &bst.Bound[string]{
 			Value: "Zara", IncludeEqual: true,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{19}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		GreaterThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		GreaterThan: &bst.Bound[string]{
 			Value: "Theo", IncludeEqual: true,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{92, 19}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		GreaterThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		GreaterThan: &bst.Bound[string]{
 			Value: "Theo", IncludeEqual: false,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{19}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan: &bst.Bound[string]{
 			Value: "Alice", IncludeEqual: false,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan: &bst.Bound[string]{
 			Value: "Alice", IncludeEqual: true,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{42, 23}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan: &bst.Bound[string]{
 			Value: "Felix", IncludeEqual: true,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan: &bst.Bound[string]{
 			Value: "Felix", IncludeEqual: false,
 		}},
 	)
 	s.NoError(err)
 	s.Equal([]int{42, 23}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan: &domain.Bound[string]{
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan: &bst.Bound[string]{
 			Value: "Zhonya", IncludeEqual: false,
 		}},
 	)
@@ -355,90 +355,90 @@ func (s *BSTTestSuite) TestSimpleQuery() {
 
 func (s *BSTTestSuite) TestMutualExcludingQueryBounds() {
 	// bounds that cancel each other out
-	data, err := s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: false},
-		GreaterThan: &domain.Bound[string]{Value: "Zara", IncludeEqual: false}},
+	data, err := s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
+		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: false}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: true},
-		GreaterThan: &domain.Bound[string]{Value: "Zara", IncludeEqual: false}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
+		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: false}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: false},
-		GreaterThan: &domain.Bound[string]{Value: "Zara", IncludeEqual: true}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
+		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: true}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: true},
-		GreaterThan: &domain.Bound[string]{Value: "Zara", IncludeEqual: true}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
+		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: true}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
 	// same value, non-inclusive query
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: false},
-		GreaterThan: &domain.Bound[string]{Value: "Iris", IncludeEqual: false}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
+		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: false}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: true},
-		GreaterThan: &domain.Bound[string]{Value: "Iris", IncludeEqual: false}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
+		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: false}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: false},
-		GreaterThan: &domain.Bound[string]{Value: "Iris", IncludeEqual: true}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
+		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: true}},
 	)
 	s.NoError(err)
 	s.Len(data, 0)
 
 	// same value, inclusive query
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: true},
-		GreaterThan: &domain.Bound[string]{Value: "Iris", IncludeEqual: true}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
+		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: true}},
 	)
 	s.NoError(err)
 	s.Equal([]int{33}, data)
 }
 
 func (s *BSTTestSuite) TestQuery() {
-	data, err := s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: false},
-		GreaterThan: &domain.Bound[string]{Value: "Alice", IncludeEqual: false}},
+	data, err := s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
+		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: false}},
 	)
 	s.NoError(err)
 	s.Equal([]int{63, 55, 88}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: true},
-		GreaterThan: &domain.Bound[string]{Value: "Alice", IncludeEqual: false}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
+		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: false}},
 	)
 	s.NoError(err)
 	s.Equal([]int{63, 55, 88, 33}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: false},
-		GreaterThan: &domain.Bound[string]{Value: "Alice", IncludeEqual: true}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
+		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: true}},
 	)
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55, 88}, data)
 
-	data, err = s.b.Query(domain.Query[string]{
-		LowerThan:   &domain.Bound[string]{Value: "Iris", IncludeEqual: true},
-		GreaterThan: &domain.Bound[string]{Value: "Alice", IncludeEqual: true}},
+	data, err = s.b.Query(bst.Query[string]{
+		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
+		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: true}},
 	)
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55, 88, 33}, data)
