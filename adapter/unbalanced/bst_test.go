@@ -1,6 +1,7 @@
 package unbalanced_test
 
 import (
+	"iter"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -276,78 +277,80 @@ func (s *BSTTestSuite) TestDeleteRoot() {
 	s.NoError(b.Insert("a", 1))
 	s.NoError(b.Insert("c", 3))
 
+	s.NoError(b.Delete("b", nil))
+
 }
 
 func (s *BSTTestSuite) TestSimpleQuery() {
-	data, err := s.b.Query(bst.Query[string]{
+	data, err := s.fetch(s.b.Query(bst.Query[string]{
 		GreaterThan: &bst.Bound[string]{
 			Value: "Zara", IncludeEqual: false,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		GreaterThan: &bst.Bound[string]{
 			Value: "Zara", IncludeEqual: true,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{19}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		GreaterThan: &bst.Bound[string]{
 			Value: "Theo", IncludeEqual: true,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{92, 19}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		GreaterThan: &bst.Bound[string]{
 			Value: "Theo", IncludeEqual: false,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{19}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan: &bst.Bound[string]{
 			Value: "Alice", IncludeEqual: false,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan: &bst.Bound[string]{
 			Value: "Alice", IncludeEqual: true,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{42, 23}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan: &bst.Bound[string]{
 			Value: "Felix", IncludeEqual: true,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan: &bst.Bound[string]{
 			Value: "Felix", IncludeEqual: false,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{42, 23}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan: &bst.Bound[string]{
 			Value: "Zhonya", IncludeEqual: false,
 		}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55, 88, 33, 45, 76, 15, 38, 87, 54, 49, 11, 91, 67, 28, 72, 92, 19}, data)
 
@@ -355,93 +358,104 @@ func (s *BSTTestSuite) TestSimpleQuery() {
 
 func (s *BSTTestSuite) TestMutualExcludingQueryBounds() {
 	// bounds that cancel each other out
-	data, err := s.b.Query(bst.Query[string]{
+	data, err := s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
 		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: false}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
 		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: false}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
 		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: true}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
 		GreaterThan: &bst.Bound[string]{Value: "Zara", IncludeEqual: true}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
 	// same value, non-inclusive query
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
 		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: false}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
 		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: false}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
 		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: true}},
-	)
+	))
 	s.NoError(err)
 	s.Len(data, 0)
 
 	// same value, inclusive query
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
 		GreaterThan: &bst.Bound[string]{Value: "Iris", IncludeEqual: true}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{33}, data)
 }
 
 func (s *BSTTestSuite) TestQuery() {
-	data, err := s.b.Query(bst.Query[string]{
+	data, err := s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
 		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: false}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{63, 55, 88}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
 		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: false}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{63, 55, 88, 33}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: false},
 		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: true}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55, 88}, data)
 
-	data, err = s.b.Query(bst.Query[string]{
+	data, err = s.fetch(s.b.Query(bst.Query[string]{
 		LowerThan:   &bst.Bound[string]{Value: "Iris", IncludeEqual: true},
 		GreaterThan: &bst.Bound[string]{Value: "Alice", IncludeEqual: true}},
-	)
+	))
 	s.NoError(err)
 	s.Equal([]int{42, 23, 63, 55, 88, 33}, data)
+}
+
+func (s *BSTTestSuite) fetch(i iter.Seq2[int, error]) ([]int, error) {
+	res := make([]int, 0, 32)
+	for v, err := range i {
+		if err != nil {
+			return res, err
+		}
+		res = append(res, v)
+	}
+	return res, nil
 }
 
 func (s *BSTTestSuite) TestUpdate() {
