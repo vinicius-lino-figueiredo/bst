@@ -10,9 +10,6 @@ import (
 	"github.com/vinicius-lino-figueiredo/bst"
 )
 
-// RecursiveLimit TODO
-var RecursiveLimit = 100000
-
 // NewBST TODO
 func NewBST[K any, V any](unique bool, creationSize int, comparer bst.Comparer[K, V]) bst.BST[K, V] {
 	if unique {
@@ -20,10 +17,6 @@ func NewBST[K any, V any](unique bool, creationSize int, comparer bst.Comparer[K
 	} else if creationSize <= 0 {
 		creationSize = 8
 	}
-	return newBST(unique, creationSize, comparer)
-}
-
-func newBST[K any, V any](unique bool, creationSize int, comparer bst.Comparer[K, V]) *Root[K, V] {
 	return &Root[K, V]{
 		unique:       unique,
 		creationSize: creationSize,
@@ -46,12 +39,251 @@ type Root[K any, V any] struct {
 	comparer     bst.Comparer[K, V]
 }
 
+// Insert implements bst.BST.
+func (r *Root[K, V]) Insert(key K, value V) error {
+	if !r.initialized {
+		r.Key = key
+		r.initialized = true
+		r.Values = append(r.Values, value)
+		r.nodeCount++
+		return nil
+	}
+	node := &r.Node
+	for {
+		comparison, err := r.comparer.CompareKeys(key, node.Key)
+		if err != nil {
+			return err
+		}
+		switch {
+		case comparison > 0:
+			if node.Greater == nil {
+				node.Greater = r.createEmptyNode(key, node)
+			}
+			node = node.Greater
+		case comparison < 0:
+			if node.Lower == nil {
+				node.Lower = r.createEmptyNode(key, node)
+			}
+			node = node.Lower
+		default:
+			if len(node.Values) != 0 {
+				if r.unique {
+					return bst.ErrUniqueViolated{Key: key}
+				}
+			} else {
+				r.nodeCount++
+			}
+			node.Values = append(node.Values, value)
+			return nil
+		}
+	}
+}
+
+func (r *Root[K, V]) createEmptyNode(key K, parent *bst.Node[K, V]) *bst.Node[K, V] {
+	node := r.nodePool.Get().(*bst.Node[K, V])
+	node.Key = key
+	node.Values = make([]V, 0, r.creationSize)
+	node.Parent = parent
+	return node
+}
+
+// Search implements bst.BST.
+func (r *Root[K, V]) Search(key K) (*bst.Node[K, V], error) {
+	node := &r.Node
+	for {
+		comparison, err := r.comparer.CompareKeys(key, node.Key)
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case comparison > 0 && node.Greater != nil:
+			node = node.Greater
+			continue
+		case comparison < 0 && node.Lower != nil:
+			node = node.Lower
+			continue
+		case comparison == 0:
+			return node, nil
+		}
+		return nil, nil
+	}
+}
+
+// Query implements bst.BST.
+func (r *Root[K, V]) Query(query bst.Query[K]) iter.Seq2[V, error] {
+	return func(yield func(V, error) bool) {
+		switch {
+		case query.GreaterThan != nil:
+			switch query.LowerThan {
+			case nil:
+				_ = r.queryGreater(&r.Node, query.GreaterThan, yield)
+			default:
+				_ = r.doubleQuery(&r.Node, query, yield)
+			}
+		case query.LowerThan != nil:
+			_ = r.queryLower(&r.Node, query.LowerThan, yield)
+		default:
+		}
+	}
+}
+
+func (r *Root[K, V]) doubleQuery(node *bst.Node[K, V], query bst.Query[K], yield func(V, error) bool) bool {
+	ltComp, err := r.comparer.CompareKeys(node.Key, query.LowerThan.Value)
+	if err != nil {
+		yield(*new(V), err)
+		return false
+	}
+
+	switch {
+	case ltComp > 0:
+		return r.treatAboveMax(node, query, yield)
+	case ltComp < 0:
+		return r.treatBelowMax(node, query, yield)
+	default:
+		return r.treatEqualMax(node, query, yield)
+	}
+}
+
+func (r *Root[K, V]) treatAboveMax(node *bst.Node[K, V], query bst.Query[K], yield func(V, error) bool) bool {
+	if node.Lower == nil {
+		return true
+	}
+	gtComp, err := r.comparer.CompareKeys(node.Key, query.GreaterThan.Value)
+	if err != nil {
+		yield(*new(V), err)
+		return false
+	}
+
+	if gtComp < 0 {
+		return true
+	}
+
+	return r.doubleQuery(node.Lower, query, yield)
+}
+
+func (r *Root[K, V]) treatBelowMax(node *bst.Node[K, V], query bst.Query[K], yield func(V, error) bool) bool {
+	gtComp, err := r.comparer.CompareKeys(node.Key, query.GreaterThan.Value)
+	if err != nil {
+		yield(*new(V), err)
+		return false
+	}
+	switch {
+	case gtComp < 0: // node lower than min
+		if r.Greater != nil {
+			return r.doubleQuery(node.Greater, query, yield)
+		}
+	case gtComp == 0: // node equal to min
+		if query.GreaterThan.IncludeEqual && !r.yieldValues(node, yield) {
+			return false
+		}
+	default:
+		if !r.yieldValues(node, yield) {
+			return false
+		}
+	}
+	if node.Greater != nil {
+		return r.doubleQuery(node.Greater, query, yield)
+	}
+	return true
+}
+
+func (r *Root[K, V]) treatEqualMax(node *bst.Node[K, V], query bst.Query[K], yield func(V, error) bool) bool {
+	gtComp, err := r.comparer.CompareKeys(node.Key, query.GreaterThan.Value)
+	if err != nil {
+		yield(*new(V), err)
+		return false
+	}
+	switch {
+	case gtComp > 0:
+		if node.Lower != nil && !r.queryGreater(node.Lower, query.GreaterThan, yield) {
+			return false
+		}
+		if query.LowerThan.IncludeEqual {
+			return r.yieldValues(node, yield)
+		}
+	case gtComp < 0:
+	default:
+		if query.GreaterThan.IncludeEqual && query.LowerThan.IncludeEqual {
+			return r.yieldValues(node, yield)
+		}
+	}
+	return true
+}
+
+func (r *Root[K, V]) queryGreater(node *bst.Node[K, V], bound *bst.Bound[K], yield func(V, error) bool) bool {
+	comp, err := r.comparer.CompareKeys(node.Key, bound.Value)
+	if err != nil {
+		yield(*new(V), err)
+		return false
+	}
+	switch {
+	case comp > 0:
+		if node.Lower != nil && !r.queryGreater(node.Lower, bound, yield) {
+			return false
+		}
+		if !r.yieldValues(node, yield) {
+			return false
+		}
+	case comp < 0:
+	default:
+		if bound.IncludeEqual && !r.yieldValues(node, yield) {
+			return false
+		}
+	}
+	if node.Greater != nil {
+		return r.queryGreater(node.Greater, bound, yield)
+	}
+	return true
+}
+
+func (r *Root[K, V]) queryLower(node *bst.Node[K, V], bound *bst.Bound[K], yield func(V, error) bool) bool {
+	comp, err := r.comparer.CompareKeys(node.Key, bound.Value)
+	if err != nil {
+		yield(*new(V), err)
+		return false
+	}
+
+	switch {
+	case comp < 0:
+		if node.Lower != nil && !r.queryLower(node.Lower, bound, yield) {
+			return false
+		}
+		if !r.yieldValues(node, yield) {
+			return false
+		}
+		if node.Greater != nil && !r.queryLower(node.Greater, bound, yield) {
+			return false
+		}
+	case comp > 0:
+		if node.Lower != nil {
+			return r.queryLower(node.Lower, bound, yield)
+		}
+	default:
+		if node.Lower != nil && !r.queryLower(node.Lower, bound, yield) {
+			return false
+		}
+		if bound.IncludeEqual && !r.yieldValues(node, yield) {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Root[K, V]) yieldValues(node *bst.Node[K, V], yield func(V, error) bool) bool {
+	for _, v := range node.Values {
+		if !yield(v, nil) {
+			return false
+		}
+	}
+	return true
+}
+
 // Delete implements bst.BST.
 func (r *Root[K, V]) Delete(key K, value *V) error {
 	if !r.initialized {
 		return nil
 	}
-	node, err := r.search(key)
+	node, err := r.Search(key)
 	if err != nil || node == nil {
 		return err
 	}
@@ -78,8 +310,10 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 		node.Lower = node.Greater.Lower
 		node.Greater, node = node.Greater.Greater, node.Greater
 	default:
-		r.initialized = false
-		return nil
+		if node == &r.Node {
+			r.initialized = false
+			return nil
+		}
 	}
 
 	node.Parent = nil
@@ -136,6 +370,33 @@ func (r *Root[K, V]) deleteValue(node *bst.Node[K, V], value *V) error {
 	return nil
 }
 
+// GetAll implements bst.BST.
+func (r *Root[K, V]) GetAll() iter.Seq[V] {
+	return func(yield func(V) bool) {
+		if !r.initialized {
+			return
+		}
+		_ = r.getAll(&r.Node, yield)
+	}
+}
+
+func (r *Root[K, V]) getAll(node *bst.Node[K, V], yield func(V) bool) bool {
+	if node.Lower != nil {
+		if !r.getAll(node.Lower, yield) {
+			return false
+		}
+	}
+	for _, value := range node.Values {
+		if !yield(value) {
+			return false
+		}
+	}
+	if node.Greater == nil {
+		return true
+	}
+	return r.getAll(node.Greater, yield)
+}
+
 // GetMax implements bst.BST.
 func (r *Root[K, V]) GetMax() *bst.Node[K, V] {
 	return r.getMax(&r.Node)
@@ -162,414 +423,12 @@ func (r *Root[K, V]) getMin(node *bst.Node[K, V]) *bst.Node[K, V] {
 
 // GetNumberOfKeys implements bst.BST.
 func (r *Root[K, V]) GetNumberOfKeys() int {
-	if !r.initialized {
-		return 0
-	}
-	return r.nodeNumberOfKeys(&r.Node)
-}
-
-func (r *Root[K, V]) nodeNumberOfKeys(node *bst.Node[K, V]) int {
-	res := 0
-	if node.Lower != nil {
-		res += r.nodeNumberOfKeys(node.Lower)
-	}
-	if node.Greater != nil {
-		res += r.nodeNumberOfKeys(node.Greater)
-	}
-	return res
-}
-
-// Insert implements bst.BST.
-func (r *Root[K, V]) Insert(key K, value V) error {
-	if !r.initialized {
-		r.Key = key
-		r.initialized = true
-		r.Values = append(r.Values, value)
-		r.nodeCount++
-		return nil
-	}
-	node := &r.Node
-	for {
-		comparison, err := r.comparer.CompareKeys(key, node.Key)
-		if err != nil {
-			return err
-		}
-		switch {
-		case comparison > 0:
-			if node.Greater == nil {
-				node.Greater = r.createEmptyNode(key, node)
-			}
-			node = node.Greater
-		case comparison < 0:
-			if node.Lower == nil {
-				node.Lower = r.createEmptyNode(key, node)
-			}
-			node = node.Lower
-		default:
-			if len(node.Values) != 0 {
-				if r.unique {
-					return bst.ErrUniqueViolated{Key: key}
-				}
-			} else {
-				r.nodeCount++
-			}
-			node.Values = append(node.Values, value)
-			return nil
-		}
-	}
-}
-
-func (r *Root[K, V]) createEmptyNode(key K, parent *bst.Node[K, V]) *bst.Node[K, V] {
-	node := r.nodePool.Get().(*bst.Node[K, V])
-	node.Key = key
-	node.Values = make([]V, 0, r.creationSize)
-	node.Parent = parent
-	return node
-}
-
-func (r *Root[K, V]) doubleQueryRecursive(node *bst.Node[K, V], query bst.Query[K], res *[]V) error {
-	lowerComp, err := r.comparer.CompareKeys(node.Key, query.LowerThan.Value)
-	if err != nil {
-		return err
-	}
-	greaterComp, err := r.comparer.CompareKeys(node.Key, query.GreaterThan.Value)
-	if err != nil {
-		return err
-	}
-
-	switch {
-	case lowerComp > 0: // Node is greater than max
-		if node.Lower == nil {
-			break
-		}
-
-		// Node is within min bound but is not equal to it
-		if greaterComp > 0 {
-			return r.doubleQueryRecursive(node.Lower, query, res)
-		}
-	case lowerComp < 0: // Node is lower than max
-		switch {
-
-		// Node is equal to min and min bound is inclusive
-		case greaterComp == 0:
-			if query.GreaterThan.IncludeEqual {
-				*res = append(*res, node.Values...)
-				if node.Greater != nil {
-					return r.singleQueryRecursive(node.Greater, query.LowerThan, 1, res)
-				}
-			}
-			if node.Greater != nil {
-				return r.singleQueryRecursive(node.Greater, query.LowerThan, 1, res)
-			}
-
-		// Node is lower than min but has a greater child node
-		case greaterComp < 0 && node.Greater != nil:
-			return r.doubleQueryRecursive(node.Greater, query, res)
-
-		case greaterComp > 0: // Node is greater than min
-			if node.Lower != nil {
-				if err := r.doubleQueryRecursive(node.Lower, query, res); err != nil {
-					return err
-				}
-			}
-			*res = append(*res, node.Values...)
-
-			if node.Greater != nil {
-				return r.doubleQueryRecursive(node.Greater, query, res)
-			}
-
-		}
-	default: // Node is equal to max
-		if !query.LowerThan.IncludeEqual {
-			if node.Lower != nil && (greaterComp > 0 || (greaterComp == 0 && query.GreaterThan.IncludeEqual)) {
-				return r.singleQueryRecursive(node.Lower, query.GreaterThan, -1, res)
-			}
-			return nil
-		}
-		switch {
-		case greaterComp == 0 && query.GreaterThan.IncludeEqual: // Node is equal to min
-			*res = append(*res, node.Values...)
-		case greaterComp > 0: // Node is greater than min
-			return r.singleQueryRecursive(node.Lower, query.GreaterThan, -1, res)
-		case greaterComp < 0: // Node is lower than min
-		}
-	}
-	return nil
-}
-
-func (r *Root[K, V]) singleQueryRecursive(node *bst.Node[K, V], bound *bst.Bound[K], multiplier int, res *[]V) error {
-	comp, err := r.comparer.CompareKeys(bound.Value, node.Key)
-	if err != nil {
-		return err
-	}
-	comp *= multiplier
-	switch {
-	case comp > 0: // node is within bound
-		if multiplier < 0 { // bound is greaterThan
-			if node.Lower != nil {
-				if err := r.singleQueryRecursive(node.Lower, bound, multiplier, res); err != nil {
-					return nil
-				}
-			}
-			*res = append(*res, node.Values...)
-			if node.Greater != nil {
-				return r.singleQueryRecursive(node.Greater, bound, multiplier, res)
-			}
-			break
-		}
-		if node.Lower != nil {
-			r.addAnyChildAndSelf(node.Lower, res)
-		}
-		*res = append(*res, node.Values...)
-		if node.Greater != nil {
-			if err := r.singleQueryRecursive(node.Greater, bound, multiplier, res); err != nil {
-				return nil
-			}
-		}
-	case comp < 0:
-		next := node.Lower
-		if multiplier < 0 {
-			next = node.Greater
-		}
-		if next != nil {
-			return r.singleQueryRecursive(next, bound, multiplier, res)
-		}
-	case comp == 0:
-		switch {
-		case multiplier < 0:
-			if bound.IncludeEqual {
-				*res = append(*res, node.Values...)
-			}
-			if node.Greater != nil {
-				r.addAnyChildAndSelf(node.Greater, res)
-			}
-		default:
-			if node.Lower != nil {
-				r.addAnyChildAndSelf(node.Lower, res)
-			}
-			if bound.IncludeEqual {
-				*res = append(*res, node.Values...)
-			}
-		}
-	}
-	return nil
-}
-
-func (r *Root[K, V]) addAnyChildAndSelf(node *bst.Node[K, V], res *[]V) {
-	if node.Lower != nil {
-		r.addAnyChildAndSelf(node.Lower, res)
-	}
-	*res = append(*res, node.Values...)
-	if node.Greater != nil {
-		r.addAnyChildAndSelf(node.Greater, res)
-	}
-}
-
-// Query implements bst.BST.
-func (r *Root[K, V]) Query(query bst.Query[K]) ([]V, error) {
-	res := make([]V, 0, r.nodeCount*r.creationSize)
-
-	if err := r.runQuery(query, &res); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func (r *Root[K, V]) runQuery(query bst.Query[K], res *[]V) error {
-	if query.LowerThan != nil {
-		if query.GreaterThan != nil {
-			if r.nodeCount < RecursiveLimit {
-				return r.doubleQueryRecursive(&r.Node, query, res)
-			}
-			return r.doubleQuery(query, res)
-		}
-		if r.nodeCount < RecursiveLimit {
-			return r.singleQueryRecursive(&r.Node, query.LowerThan, 1, res)
-		}
-		return r.singleQuery(query.LowerThan, 1, res)
-	}
-	if query.GreaterThan != nil {
-		if r.nodeCount < RecursiveLimit {
-			return r.singleQueryRecursive(&r.Node, query.GreaterThan, -1, res)
-		}
-		return r.singleQuery(query.LowerThan, -1, res)
-	}
-	return nil
-}
-
-func (r *Root[K, V]) doubleQuery(query bst.Query[K], res *[]V) error {
-	nodes := make([]*bst.Node[K, V], 1, r.nodeCount)
-	nodes[0] = &r.Node
-	lastLen := 1
-	start, end := 0, 1
-	for {
-		for n, node := range nodes[start:end] {
-			comparison, err := r.comparer.CompareKeys(query.LowerThan.Value, node.Key)
-			if err != nil {
-				return err
-			}
-			switch {
-			case comparison < 0:
-				if node.Lower != nil {
-					nodes = append(nodes, node.Lower)
-				}
-			case comparison > 0:
-				err := r.addChildrenAndSelf(node, nodes[start+n:cap(nodes)], res, 1, query.GreaterThan)
-				if err != nil {
-					return err
-				}
-			case comparison == 0:
-				if query.LowerThan.IncludeEqual {
-					*res = append(*res, node.Values...)
-				}
-				if node.Lower != nil {
-					nodes = append(nodes, node.Lower)
-				}
-			}
-		}
-		diff := len(nodes) - lastLen
-		if diff == 0 {
-			return nil
-		}
-		lastLen = len(nodes)
-		start = end
-		end += diff
-	}
-}
-
-func (r *Root[K, V]) addChildrenAndSelf(node *bst.Node[K, V], nodes []*bst.Node[K, V], res *[]V, multiplier int, bound *bst.Bound[K]) error {
-	nodes = nodes[:1]
-	nodes[0] = node
-	lastLen := 1
-	start, end := 0, 1
-	for {
-		for _, node := range nodes[start:end] {
-			comp, err := r.comparer.CompareKeys(bound.Value, node.Key)
-			if err != nil {
-				return err
-			}
-			comp *= multiplier
-			switch {
-			case comp < 0:
-				*res = append(*res, node.Values...)
-				if node.Lower != nil {
-					nodes = append(nodes, node.Lower)
-				}
-				if node.Greater != nil {
-					nodes = append(nodes, node.Greater)
-				}
-			case comp == 0 && bound.IncludeEqual:
-				println("")
-			default:
-				continue
-			}
-		}
-		diff := len(nodes) - lastLen
-		if diff == 0 {
-			return nil
-		}
-		lastLen = len(nodes)
-		start = end
-		end += diff
-	}
-
-}
-
-func (r *Root[K, V]) singleQuery(query *bst.Bound[K], multiplier int, res *[]V) error {
-	nodes := make([]*bst.Node[K, V], 1, r.nodeCount)
-	nodes[0] = &r.Node
-	lastLen := 1
-	start, end := 0, 1
-	for {
-		for n, node := range nodes[start:end] {
-			comparison, err := r.comparer.CompareKeys(query.Value, node.Key)
-			if err != nil {
-				return err
-			}
-			comparison *= multiplier
-			switch {
-			case comparison < 0:
-				if node.Lower != nil {
-					nodes = append(nodes, node.Lower)
-				}
-			case comparison > 0:
-				r.addChildrenAndSelfNoBound(node, nodes[start+n:cap(nodes)], res)
-			case comparison == 0:
-				if query.IncludeEqual {
-					*res = append(*res, node.Values...)
-				}
-				if node.Lower != nil {
-					nodes = append(nodes, node.Lower)
-				}
-			}
-		}
-		diff := len(nodes) - lastLen
-		if diff == 0 {
-			return nil
-		}
-		lastLen = len(nodes)
-		start = end
-		end += diff
-	}
-}
-
-func (r *Root[K, V]) addChildrenAndSelfNoBound(node *bst.Node[K, V], nodes []*bst.Node[K, V], res *[]V) {
-	nodes = nodes[:1]
-	nodes[0] = node
-	lastLen := 1
-	start, end := 0, 1
-	for {
-		for _, node := range nodes[start:end] {
-			*res = append(*res, node.Values...)
-			if node.Lower != nil {
-				nodes = append(nodes, node.Lower)
-			}
-			if node.Greater != nil {
-				nodes = append(nodes, node.Greater)
-			}
-		}
-		diff := len(nodes) - lastLen
-		if diff == 0 {
-			return
-		}
-		lastLen = len(nodes)
-		start = end
-		end += diff
-	}
-
-}
-
-// Search implements bst.BST.
-func (r *Root[K, V]) Search(key K) (*bst.Node[K, V], error) {
-	node, err := r.search(key)
-	return node, err
-}
-
-func (r *Root[K, V]) search(key K) (*bst.Node[K, V], error) {
-	node := &r.Node
-	for {
-		comparison, err := r.comparer.CompareKeys(key, node.Key)
-		if err != nil {
-			return nil, err
-		}
-		switch {
-		case comparison > 0 && node.Greater != nil:
-			node = node.Greater
-			continue
-		case comparison < 0 && node.Lower != nil:
-			node = node.Lower
-			continue
-		case comparison == 0:
-			return node, nil
-		}
-		return nil, nil
-	}
+	return r.nodeCount
 }
 
 // Update implements bst.BST.
 func (r *Root[K, V]) Update(key K, old V, nw V) error {
-	node, err := r.search(key)
+	node, err := r.Search(key)
 	if err != nil || node == nil {
 		return err
 	}
@@ -584,27 +443,4 @@ func (r *Root[K, V]) Update(key K, old V, nw V) error {
 		}
 	}
 	return nil
-}
-
-// GetAll implements bst.BST.
-func (r *Root[K, V]) GetAll() iter.Seq[V] {
-	return func(yield func(V) bool) {
-		if r.initialized {
-			r.yieldNode(&r.Node, yield)
-		}
-	}
-}
-
-func (r *Root[K, V]) yieldNode(node *bst.Node[K, V], yield func(V) bool) {
-	if node.Lower != nil {
-		r.yieldNode(node.Lower, yield)
-	}
-	for _, value := range node.Values {
-		if !yield(value) {
-			return
-		}
-	}
-	if node.Greater != nil {
-		r.yieldNode(node.Greater, yield)
-	}
 }

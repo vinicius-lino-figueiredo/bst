@@ -32,7 +32,7 @@ type BST[K any, V any] interface {
 	Insert(key K, value V) error
 
 	Search(key K) (*Node[K, V], error)
-	Query(query Query[K]) ([]V, error)
+	Query(query Query[K]) iter.Seq2[V, error]
 	GetMax() *Node[K, V]
 	GetMin() *Node[K, V]
 	GetNumberOfKeys() int
