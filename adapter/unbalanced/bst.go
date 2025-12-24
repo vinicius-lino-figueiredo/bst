@@ -296,7 +296,7 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 			return err
 		}
 	}
-	node.Values = node.Values[:0]
+	r.nodeCount--
 
 	switch {
 	case node.Lower != nil:
@@ -306,6 +306,7 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 		}
 		node.Lower.Parent = nil
 		node.Key, node.Values = node.Lower.Key, node.Lower.Values
+		node.Lower.Values = node.Lower.Values[:0]
 
 		if node.Lower.Greater != nil {
 			node.Lower.Parent = node
@@ -316,10 +317,11 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 
 		node.Lower, node.Lower.Lower = node.Lower.Lower, nil
 		node.Greater, node.Lower.Greater = node.Lower.Greater, nil
-		r.nodePool.Put(node.Greater)
+		r.nodePool.Put(node.Lower)
 	case node.Greater != nil:
 		node.Greater.Parent = nil
 		node.Key, node.Values = node.Greater.Key, node.Greater.Values
+		node.Greater.Values = node.Greater.Values[:0]
 
 		if node.Greater.Greater != nil {
 			node.Greater.Parent = node
@@ -333,10 +335,18 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 		r.nodePool.Put(node.Greater)
 
 	default:
-		if node == &r.Node {
+		node.Values = node.Values[:0]
+		switch node {
+		case &r.Node:
 			r.initialized = false
 			return nil
+		case node.Parent.Lower:
+			node.Parent.Lower = nil
+		default:
+			node.Parent.Greater = nil
 		}
+		node.Parent = nil
+		r.nodePool.Put(node)
 	}
 
 	return nil
@@ -371,7 +381,6 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(node *bst.Node[K, V]) {
 		}
 		r.nodePool.Put(closestNode)
 	}
-	r.nodeCount--
 }
 
 func (r *Root[K, V]) deleteValue(node *bst.Node[K, V], value *V) error {
