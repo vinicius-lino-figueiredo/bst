@@ -181,6 +181,9 @@ func (r *Root[K, V]) treatBelowMax(node *bst.Node[K, V], query bst.Query[K], yie
 			return false
 		}
 	default:
+		if node.Lower != nil && !r.queryGreater(node.Lower, query.GreaterThan, yield) {
+			return false
+		}
 		if !r.yieldValues(node, yield) {
 			return false
 		}
