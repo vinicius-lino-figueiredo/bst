@@ -49,6 +49,7 @@ func (r *Root[K, V]) Insert(key K, value V) error {
 		return nil
 	}
 	node := &r.Node
+Loop:
 	for {
 		comparison, err := r.comparer.CompareKeys(key, node.Key)
 		if err != nil {
@@ -58,25 +59,28 @@ func (r *Root[K, V]) Insert(key K, value V) error {
 		case comparison > 0:
 			if node.Greater == nil {
 				node.Greater = r.createEmptyNode(key, node)
+				r.nodeCount++
+				node = node.Greater
+				break Loop
 			}
 			node = node.Greater
 		case comparison < 0:
 			if node.Lower == nil {
 				node.Lower = r.createEmptyNode(key, node)
+				r.nodeCount++
+				node = node.Lower
+				break Loop
 			}
 			node = node.Lower
 		default:
-			if len(node.Values) != 0 {
-				if r.unique {
-					return bst.ErrUniqueViolated{Key: key}
-				}
-			} else {
-				r.nodeCount++
+			if r.unique {
+				return bst.ErrUniqueViolated{Key: key}
 			}
-			node.Values = append(node.Values, value)
-			return nil
+			break Loop
 		}
 	}
+	node.Values = append(node.Values, value)
+	return nil
 }
 
 func (r *Root[K, V]) createEmptyNode(key K, parent *bst.Node[K, V]) *bst.Node[K, V] {
@@ -300,26 +304,40 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 			r.deleteDoubleChildrenNode(node)
 			return nil
 		}
-		node.Key = node.Lower.Key
-		node.Values = node.Lower.Values
-		node.Lower = node.Lower.Lower
-		node.Lower, node = node.Lower.Lower, node.Lower
+		node.Lower.Parent = nil
+		node.Key, node.Values = node.Lower.Key, node.Lower.Values
+
+		if node.Lower.Greater != nil {
+			node.Lower.Parent = node
+		}
+		if node.Lower.Lower != nil {
+			node.Lower.Lower.Parent = node
+		}
+
+		node.Lower, node.Lower.Lower = node.Lower.Lower, nil
+		node.Greater, node.Lower.Greater = node.Lower.Greater, nil
+		r.nodePool.Put(node.Greater)
 	case node.Greater != nil:
-		node.Key = node.Greater.Key
-		node.Values = node.Greater.Values
-		node.Lower = node.Greater.Lower
-		node.Greater, node = node.Greater.Greater, node.Greater
+		node.Greater.Parent = nil
+		node.Key, node.Values = node.Greater.Key, node.Greater.Values
+
+		if node.Greater.Greater != nil {
+			node.Greater.Parent = node
+		}
+		if node.Greater.Lower != nil {
+			node.Greater.Lower.Parent = node
+		}
+
+		node.Lower, node.Greater.Lower = node.Greater.Lower, nil
+		node.Greater, node.Greater.Greater = node.Greater.Greater, nil
+		r.nodePool.Put(node.Greater)
+
 	default:
 		if node == &r.Node {
 			r.initialized = false
 			return nil
 		}
 	}
-
-	node.Parent = nil
-	node.Lower = nil
-	node.Lower = nil
-	r.nodePool.Put(node)
 
 	return nil
 }
