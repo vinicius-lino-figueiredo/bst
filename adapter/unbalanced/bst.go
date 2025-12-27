@@ -93,6 +93,9 @@ func (r *Root[K, V]) createEmptyNode(key K, parent *bst.Node[K, V]) *bst.Node[K,
 
 // Search implements bst.BST.
 func (r *Root[K, V]) Search(key K) (*bst.Node[K, V], error) {
+	if !r.initialized {
+		return nil, nil
+	}
 	node := &r.Node
 	for {
 		comparison, err := r.comparer.CompareKeys(key, node.Key)
