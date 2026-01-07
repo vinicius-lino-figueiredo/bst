@@ -50,44 +50,44 @@ func (s *BSTTestSuite) TestInsert() {
 	s.NoError(b.Insert("Jack", 10))
 	Jack := &b.Node
 	s.NotNil(Jack)
-	s.Equal("Jack", Jack.Key)
-	s.Equal([]int{10}, Jack.Values)
+	s.Equal("Jack", Jack.Key())
+	s.Equal([]int{10}, Jack.Values())
 
 	s.NoError(b.Insert("Diango", 9090))
-	Diango := Jack.Lower
+	Diango := Jack.Lower()
 	s.NotNil(Diango)
-	s.Equal("Diango", Diango.Key)
-	s.Equal([]int{9090}, Diango.Values)
+	s.Equal("Diango", Diango.Key())
+	s.Equal([]int{9090}, Diango.Values())
 
 	s.NoError(b.Insert("Isaac", 2345678))
-	Isaac := Diango.Greater
+	Isaac := Diango.Greater()
 	s.NotNil(Isaac)
-	s.Equal("Isaac", Isaac.Key)
-	s.Equal([]int{2345678}, Isaac.Values)
+	s.Equal("Isaac", Isaac.Key())
+	s.Equal([]int{2345678}, Isaac.Values())
 
 	s.NoError(b.Insert("Kojiro", 12))
-	Kojiro := Jack.Greater
+	Kojiro := Jack.Greater()
 	s.NotNil(Kojiro)
-	s.Equal("Kojiro", Kojiro.Key)
-	s.Equal([]int{12}, Kojiro.Values)
+	s.Equal("Kojiro", Kojiro.Key())
+	s.Equal([]int{12}, Kojiro.Values())
 
 	s.NoError(b.Insert("Sam", 69))
-	Sam := Kojiro.Greater
+	Sam := Kojiro.Greater()
 	s.NotNil(Sam)
-	s.Equal("Sam", Sam.Key)
-	s.Equal([]int{69}, Sam.Values)
+	s.Equal("Sam", Sam.Key())
+	s.Equal([]int{69}, Sam.Values())
 
 	s.NoError(b.Insert("Jonathan", 20))
-	Jonathan := Kojiro.Lower
+	Jonathan := Kojiro.Lower()
 	s.NotNil(Jonathan)
-	s.Equal("Jonathan", Jonathan.Key)
-	s.Equal([]int{20}, Jonathan.Values)
+	s.Equal("Jonathan", Jonathan.Key())
+	s.Equal([]int{20}, Jonathan.Values())
 
 	s.NoError(b.Insert("Stan", 100))
-	Stan := Sam.Greater
+	Stan := Sam.Greater()
 	s.NotNil(Stan)
-	s.Equal("Stan", Stan.Key)
-	s.Equal([]int{100}, Stan.Values)
+	s.Equal("Stan", Stan.Key())
+	s.Equal([]int{100}, Stan.Values())
 }
 
 func (s *BSTTestSuite) TestInsertNonUnique() {
@@ -125,78 +125,78 @@ func (s *BSTTestSuite) TestSearch() {
 
 	Alice, err := b.Search("Alice")
 	s.NoError(err)
-	s.Equal("Alice", Alice.Key)
-	s.Equal([]int{42, 23}, Alice.Values)
+	s.Equal("Alice", Alice.Key())
+	s.Equal([]int{42, 23}, Alice.Values())
 
 	Felix, err := b.Search("Felix")
 	s.NoError(err)
-	s.Equal("Felix", Felix.Key)
-	s.Equal([]int{63, 55}, Felix.Values)
+	s.Equal("Felix", Felix.Key())
+	s.Equal([]int{63, 55}, Felix.Values())
 
 	Hugo, err := b.Search("Hugo")
 	s.NoError(err)
-	s.Equal("Hugo", Hugo.Key)
-	s.Equal([]int{88}, Hugo.Values)
+	s.Equal("Hugo", Hugo.Key())
+	s.Equal([]int{88}, Hugo.Values())
 
 	Iris, err := b.Search("Iris")
 	s.NoError(err)
-	s.Equal("Iris", Iris.Key)
-	s.Equal([]int{33}, Iris.Values)
+	s.Equal("Iris", Iris.Key())
+	s.Equal([]int{33}, Iris.Values())
 
 	Kai, err := b.Search("Kai")
 	s.NoError(err)
-	s.Equal("Kai", Kai.Key)
-	s.Equal([]int{45}, Kai.Values)
+	s.Equal("Kai", Kai.Key())
+	s.Equal([]int{45}, Kai.Values())
 
 	Leo, err := b.Search("Leo")
 	s.NoError(err)
-	s.Equal("Leo", Leo.Key)
-	s.Equal([]int{76}, Leo.Values)
+	s.Equal("Leo", Leo.Key())
+	s.Equal([]int{76}, Leo.Values())
 
 	Luna, err := b.Search("Luna")
 	s.NoError(err)
-	s.Equal("Luna", Luna.Key)
-	s.Equal([]int{15, 38}, Luna.Values)
+	s.Equal("Luna", Luna.Key())
+	s.Equal([]int{15, 38}, Luna.Values())
 
 	Marcus, err := b.Search("Marcus")
 	s.NoError(err)
-	s.Equal("Marcus", Marcus.Key)
-	s.Equal([]int{87}, Marcus.Values)
+	s.Equal("Marcus", Marcus.Key())
+	s.Equal([]int{87}, Marcus.Values())
 
 	Maya, err := b.Search("Maya")
 	s.NoError(err)
-	s.Equal("Maya", Maya.Key)
-	s.Equal([]int{54, 49}, Maya.Values)
+	s.Equal("Maya", Maya.Key())
+	s.Equal([]int{54, 49}, Maya.Values())
 
 	Mila, err := b.Search("Mila")
 	s.NoError(err)
-	s.Equal("Mila", Mila.Key)
-	s.Equal([]int{11}, Mila.Values)
+	s.Equal("Mila", Mila.Key())
+	s.Equal([]int{11}, Mila.Values())
 
 	Nina, err := b.Search("Nina")
 	s.NoError(err)
-	s.Equal("Nina", Nina.Key)
-	s.Equal([]int{91}, Nina.Values)
+	s.Equal("Nina", Nina.Key())
+	s.Equal([]int{91}, Nina.Values())
 
 	Nora, err := b.Search("Nora")
 	s.NoError(err)
-	s.Equal("Nora", Nora.Key)
-	s.Equal([]int{67}, Nora.Values)
+	s.Equal("Nora", Nora.Key())
+	s.Equal([]int{67}, Nora.Values())
 
 	Oscar, err := b.Search("Oscar")
 	s.NoError(err)
-	s.Equal("Oscar", Oscar.Key)
-	s.Equal([]int{28, 72}, Oscar.Values)
+	s.Equal("Oscar", Oscar.Key())
+	s.Equal([]int{28, 72}, Oscar.Values())
 
 	Theo, err := b.Search("Theo")
 	s.NoError(err)
-	s.Equal("Theo", Theo.Key)
-	s.Equal([]int{92}, Theo.Values)
+	s.Equal("Theo", Theo.Key())
+	s.Equal([]int{92}, Theo.Values())
 
 	Zara, err := b.Search("Zara")
 	s.NoError(err)
-	s.Equal("Zara", Zara.Key)
-	s.Equal([]int{19}, Zara.Values)
+	s.Equal("Zara", Zara.Key())
+	s.Equal([]int{19}, Zara.Values())
 
 	Invalid, err := b.Search("Invalid")
 	s.NoError(err)
@@ -231,10 +231,10 @@ func (s *BSTTestSuite) TestDelete() {
 
 	node, err := b.Search("Felix")
 	s.NoError(err)
-	s.Equal([]int{63, 55}, node.Values)
-	Luna := node.Parent
-	s.Equal("Luna", Luna.Key)
-	s.Equal("Felix", Luna.Lower.Key)
+	s.Equal([]int{63, 55}, node.Values())
+	Luna := node.Parent()
+	s.Equal("Luna", Luna.Key())
+	s.Equal("Felix", Luna.Lower().Key())
 
 	// Remove a single item
 	value := 63
@@ -243,14 +243,14 @@ func (s *BSTTestSuite) TestDelete() {
 	// Key still exists, but the delete value is gone
 	node, err = b.Search("Felix")
 	s.NoError(err)
-	s.Equal([]int{55}, node.Values)
-	s.Equal("Luna", Luna.Key)
-	s.Equal("Felix", Luna.Lower.Key)
+	s.Equal([]int{55}, node.Values())
+	s.Equal("Luna", Luna.Key())
+	s.Equal("Felix", Luna.Lower().Key())
 
 	// Deleting other value. Empty Nodes are removed too
 	value = 55
 	s.NoError(b.Delete("Felix", &value))
-	s.Equal("Leo", Luna.Lower.Key)
+	s.Equal("Leo", Luna.Lower().Key())
 	node, err = b.Search("Felix")
 	s.NoError(err)
 	s.Nil(node)
@@ -258,16 +258,16 @@ func (s *BSTTestSuite) TestDelete() {
 	// Another node took its place
 	node, err = b.Search("Leo")
 	s.NoError(err)
-	s.Equal([]int{76, 77}, node.Values)
-	s.Equal("Luna", Luna.Key)
-	s.Equal("Leo", Luna.Lower.Key)
+	s.Equal([]int{76, 77}, node.Values())
+	s.Equal("Luna", Luna.Key())
+	s.Equal("Leo", Luna.Lower().Key())
 
 	// Deleting it without a value removes the whole node
 	s.NoError(b.Delete("Leo", nil))
 	node, err = b.Search("Leo")
 	s.NoError(err)
 	s.Nil(node)
-	s.Equal("Iris", Luna.Lower.Key)
+	s.Equal("Iris", Luna.Lower().Key())
 }
 
 func (s *BSTTestSuite) TestDeleteRoot() {
@@ -461,11 +461,11 @@ func (s *BSTTestSuite) fetch(i iter.Seq2[int, error]) ([]int, error) {
 func (s *BSTTestSuite) TestUpdate() {
 	s.NoError(s.b.Update("Leo", 76, 10))
 
-	s.Equal([]int{10}, s.b.Node.Values)
+	s.Equal([]int{10}, s.b.Node.Values())
 
 	s.NoError(s.b.Update("Leo", 12, 1000))
 
-	s.Equal([]int{10}, s.b.Node.Values)
+	s.Equal([]int{10}, s.b.Node.Values())
 }
 
 func TestBSTTestSuite(t *testing.T) {
