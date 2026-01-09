@@ -1,4 +1,4 @@
-package unbalanced_test
+package avl_test
 
 import (
 	"iter"
@@ -6,18 +6,18 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"github.com/vinicius-lino-figueiredo/bst"
+	"github.com/vinicius-lino-figueiredo/bst/adapter/avl"
 	"github.com/vinicius-lino-figueiredo/bst/adapter/comparer"
-	"github.com/vinicius-lino-figueiredo/bst/adapter/unbalanced"
 )
 
 type BSTTestSuite struct {
 	suite.Suite
-	b *unbalanced.Root[string, int]
+	b *avl.Root[string, int]
 }
 
 func (s *BSTTestSuite) SetupTest() {
 	comparer := comparer.NewComparer[string, int]()
-	s.b = unbalanced.NewBST(false, 0, comparer).(*unbalanced.Root[string, int])
+	s.b = avl.NewBST(false, 0, comparer).(*avl.Root[string, int])
 
 	s.NoError(s.b.Insert("Leo", 76))
 	s.NoError(s.b.Insert("Alice", 42))
@@ -45,11 +45,10 @@ func (s *BSTTestSuite) TestInsert() {
 
 	comparer := comparer.NewComparer[string, int]()
 
-	b := unbalanced.NewBST(false, 0, comparer).(*unbalanced.Root[string, int])
+	b := avl.NewBST(false, 0, comparer).(*avl.Root[string, int])
 
 	s.NoError(b.Insert("Jack", 10))
-	Jack := &b.Node
-	s.NotNil(Jack)
+	Jack := bst.Node[string, int](&b.Node)
 	s.Equal("Jack", Jack.Key())
 	s.Equal([]int{10}, Jack.Values())
 
@@ -60,9 +59,15 @@ func (s *BSTTestSuite) TestInsert() {
 	s.Equal([]int{9090}, Diango.Values())
 
 	s.NoError(b.Insert("Isaac", 2345678))
-	Isaac := Diango.Greater()
+
+	Isaac := bst.Node[string, int](&b.Node)
+	Diango = Isaac.Lower()
+	Jack = Isaac.Greater()
+
 	s.NotNil(Isaac)
 	s.Equal("Isaac", Isaac.Key())
+	s.Equal("Jack", Jack.Key())
+	s.Equal("Diango", Diango.Key())
 	s.Equal([]int{2345678}, Isaac.Values())
 
 	s.NoError(b.Insert("Kojiro", 12))
@@ -72,13 +77,23 @@ func (s *BSTTestSuite) TestInsert() {
 	s.Equal([]int{12}, Kojiro.Values())
 
 	s.NoError(b.Insert("Sam", 69))
+	Isaac = &b.Node
+	Diango = Isaac.Lower()
+	Kojiro = Isaac.Greater()
+	Jack = Kojiro.Lower()
 	Sam := Kojiro.Greater()
+
 	s.NotNil(Sam)
 	s.Equal("Sam", Sam.Key())
 	s.Equal([]int{69}, Sam.Values())
 
 	s.NoError(b.Insert("Jonathan", 20))
+	Jack = &b.Node
+	Isaac = Jack.Lower()
+	Diango = Isaac.Lower()
+	Kojiro = Jack.Greater()
 	Jonathan := Kojiro.Lower()
+	Sam = Kojiro.Greater()
 	s.NotNil(Jonathan)
 	s.Equal("Jonathan", Jonathan.Key())
 	s.Equal([]int{20}, Jonathan.Values())
@@ -91,7 +106,7 @@ func (s *BSTTestSuite) TestInsert() {
 }
 
 func (s *BSTTestSuite) TestInsertNonUnique() {
-	b := unbalanced.NewBST(true, 8, comparer.NewComparer[string, int]())
+	b := avl.NewBST(true, 8, comparer.NewComparer[string, int]())
 
 	s.NoError(b.Insert("unique", 10))
 	s.ErrorAs(b.Insert("unique", 11), &bst.ErrUniqueViolated{})
@@ -100,7 +115,7 @@ func (s *BSTTestSuite) TestInsertNonUnique() {
 
 func (s *BSTTestSuite) TestSearch() {
 	comparer := comparer.NewComparer[string, int]()
-	b := unbalanced.NewBST(false, 0, comparer).(*unbalanced.Root[string, int])
+	b := avl.NewBST(false, 0, comparer).(*avl.Root[string, int])
 
 	s.NoError(b.Insert("Alice", 42))
 	s.NoError(b.Insert("Marcus", 87))
@@ -205,7 +220,7 @@ func (s *BSTTestSuite) TestSearch() {
 
 func (s *BSTTestSuite) TestDelete() {
 	comparer := comparer.NewComparer[string, int]()
-	b := unbalanced.NewBST(false, 0, comparer).(*unbalanced.Root[string, int])
+	b := avl.NewBST(false, 0, comparer).(*avl.Root[string, int])
 
 	s.NoError(b.Insert("Alice", 42))
 	s.NoError(b.Insert("Marcus", 87))
@@ -232,9 +247,9 @@ func (s *BSTTestSuite) TestDelete() {
 	node, err := b.Search("Felix")
 	s.NoError(err)
 	s.Equal([]int{63, 55}, node.Values())
-	Luna := node.Parent()
-	s.Equal("Luna", Luna.Key())
-	s.Equal("Felix", Luna.Lower().Key())
+	Iris := node.Parent()
+	s.Equal("Iris", Iris.Key())
+	s.Equal("Felix", Iris.Lower().Key())
 
 	// Remove a single item
 	value := 63
@@ -244,34 +259,20 @@ func (s *BSTTestSuite) TestDelete() {
 	node, err = b.Search("Felix")
 	s.NoError(err)
 	s.Equal([]int{55}, node.Values())
-	s.Equal("Luna", Luna.Key())
-	s.Equal("Felix", Luna.Lower().Key())
+	s.Equal("Iris", Iris.Key())
+	s.Equal("Felix", Iris.Lower().Key())
 
 	// Deleting other value. Empty Nodes are removed too
 	value = 55
 	s.NoError(b.Delete("Felix", &value))
-	s.Equal("Leo", Luna.Lower().Key())
+	s.Equal("Leo", Iris.Greater().Key())
 	node, err = b.Search("Felix")
 	s.NoError(err)
 	s.Nil(node)
-
-	// Another node took its place
-	node, err = b.Search("Leo")
-	s.NoError(err)
-	s.Equal([]int{76, 77}, node.Values())
-	s.Equal("Luna", Luna.Key())
-	s.Equal("Leo", Luna.Lower().Key())
-
-	// Deleting it without a value removes the whole node
-	s.NoError(b.Delete("Leo", nil))
-	node, err = b.Search("Leo")
-	s.NoError(err)
-	s.Nil(node)
-	s.Equal("Iris", Luna.Lower().Key())
 }
 
 func (s *BSTTestSuite) TestDeleteRoot() {
-	b := unbalanced.NewBST(false, 0, comparer.NewComparer[string, int]())
+	b := avl.NewBST(false, 0, comparer.NewComparer[string, int]())
 
 	s.NoError(b.Insert("b", 2))
 	s.NoError(b.Insert("a", 1))

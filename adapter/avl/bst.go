@@ -1,5 +1,5 @@
-// Package unbalanced TODO
-package unbalanced
+// Package avl TODO
+package avl
 
 import (
 	"iter"
@@ -40,6 +40,7 @@ type Root[K any, V any] struct {
 }
 
 type node[K any, V any] struct {
+	height  int
 	key     K
 	values  []V
 	parent  *node[K, V]
@@ -75,6 +76,7 @@ func (n *node[K, V]) Values() []V {
 // Insert implements bst.BST.
 func (r *Root[K, V]) Insert(key K, value V) error {
 	if !r.initialized {
+		r.Node.height = 1
 		r.Node.key = key
 		r.initialized = true
 		r.Node.values = append(r.Node.values, value)
@@ -93,6 +95,7 @@ Loop:
 			if node.greater == nil {
 				node.greater = r.createEmptyNode(key, node)
 				r.nodeCount++
+				r.updateHeight(node)
 				node = node.greater
 				break Loop
 			}
@@ -101,6 +104,7 @@ Loop:
 			if node.lower == nil {
 				node.lower = r.createEmptyNode(key, node)
 				r.nodeCount++
+				r.updateHeight(node)
 				node = node.lower
 				break Loop
 			}
@@ -113,14 +117,143 @@ Loop:
 		}
 	}
 	node.values = append(node.values, value)
+
+	r.balance(node.parent)
+
 	return nil
 }
+
+func (r *Root[K, V]) balance(node *node[K, V]) {
+	for node != nil {
+		switch r.balanceFactor(node) {
+		case -2:
+			if r.balanceFactor(node.greater) > 0 { // Right-Left
+				r.rotateRight(node.greater)
+			}
+			r.rotateLeft(node)
+		default:
+		case +2:
+			if r.balanceFactor(node.lower) < 0 { // Left-Right
+				r.rotateLeft(node.lower)
+			}
+			r.rotateRight(node)
+		}
+
+		node.height = max(r.height(node.lower), r.height(node.greater)) + 1
+
+		node = node.parent
+	}
+}
+
+func (r *Root[K, V]) updateHeight(node *node[K, V]) {
+	for node != nil {
+		node.height = max(r.height(node.lower), r.height(node.greater)) + 1
+		node = node.parent
+	}
+}
+
+func (r *Root[K, V]) height(node *node[K, V]) int {
+	if node != nil {
+		return node.height
+	}
+	return 0
+}
+
+//	func (r *Root[K, V]) rotate(node *node[K, V], bf int) *node[K, V] {
+//		switch bf {
+//		case -1, 0, +1:
+//			return node
+//		case +2:
+//			return r.rotateLeftleft(node)
+//		case -2:
+//			if node.lower.greater == nil {
+//				return r.rotateRight(node)
+//			}
+//			return r.rotateLeftRight(node)
+//		default:
+//		}
+//		return node
+//	}
+//
+//	func (r *Root[K, V]) rotateRightLeft(node *node[K, V]) *node[K, V] {
+//		node = r.rotateRight(node.greater)
+//		node = r.rotateLeftleft(node.parent)
+//		return node
+//	}
+//
+//	func (r *Root[K, V]) rotateLeftRight(node *node[K, V]) *node[K, V] {
+//		return node
+//	}
+func (r *Root[K, V]) rotateRight(n *node[K, V]) *node[K, V] {
+	newGreater := n.lower
+
+	r.swapData(newGreater, n)
+	n.greater, n.lower = n.lower, n.greater
+
+	n.lower, newGreater.lower, newGreater.greater = newGreater.lower, newGreater.greater, n.lower
+
+	newGreater.parent = n
+	if n.lower != nil {
+		n.lower.parent = n
+	}
+	if newGreater.greater != nil {
+		newGreater.greater.parent = newGreater
+	}
+
+	r.updateHeight(n)
+	r.updateHeight(newGreater)
+	return nil
+}
+
+func (r *Root[K, V]) rotateLeft(n *node[K, V]) *node[K, V] {
+	newLower := n.greater
+
+	r.swapData(newLower, n)
+	n.lower, n.greater = n.greater, n.lower
+
+	n.greater, newLower.greater, newLower.lower = newLower.greater, newLower.lower, n.greater
+
+	newLower.parent = n
+	if n.greater != nil {
+		n.greater.parent = n
+	}
+	if newLower.lower != nil {
+		newLower.lower.parent = newLower
+	}
+
+	r.updateHeight(n)
+	r.updateHeight(newLower)
+	return nil
+}
+
+func (r *Root[K, V]) swapData(a *node[K, V], b *node[K, V]) {
+	a.key, b.key = b.key, a.key
+	a.values, b.values = b.values, a.values
+	a.height, b.height = b.height, a.height
+}
+
+// func (r *root[k, v]) rotateleftleft(node *node[k, v]) *node[k, v] {
+// 	// swapping values
+// 	node.key, node.greater.key = node.greater.key, node.key
+// 	node.values, node.greater.values = node.greater.values, node.values
+// 	node.gh, node.greater.gh = node.greater.gh, node.gh
+// 	node.lh, node.greater.lh = node.lh+1, node.lh
+//
+// 	// swapping positions
+// 	node.lower, node.greater = node.greater, node.lower
+// 	// rotating
+// 	node.lower.lower, node.greater = node.greater, node.lower.greater
+// 	// fixing references
+// 	node.greater.parent, node.lower.greater = node, nil
+// 	return node
+// }
 
 func (r *Root[K, V]) createEmptyNode(key K, parent *node[K, V]) *node[K, V] {
 	node := r.nodePool.Get().(*node[K, V])
 	node.key = key
 	node.values = make([]V, 0, r.creationSize)
 	node.parent = parent
+	node.height = 1
 	return node
 }
 
@@ -341,11 +474,12 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 	}
 	r.nodeCount--
 
+Switch:
 	switch {
 	case node.lower != nil:
 		if node.greater != nil {
 			r.deleteDoubleChildrenNode(node)
-			return nil
+			break
 		}
 		r.takePlace(node, node.lower)
 	case node.greater != nil:
@@ -355,17 +489,29 @@ func (r *Root[K, V]) Delete(key K, value *V) error {
 		switch node {
 		case &r.Node:
 			r.initialized = false
-			return nil
+			break Switch
 		case node.parent.lower:
 			node.parent.lower = nil
 		default:
 			node.parent.greater = nil
 		}
+		node.height = 0
+
+		parent := node.parent
 		node.parent = nil
-		r.nodePool.Put(node)
+		node = parent
+		r.nodePool.Put(parent)
 	}
+	r.updateHeight(node)
 
 	return nil
+}
+
+func (r *Root[K, V]) balanceFactor(node *node[K, V]) int {
+	if node == nil {
+		return 0
+	}
+	return r.height(node.lower) - r.height(node.greater)
 }
 
 func (r *Root[K, V]) takePlace(node, victim *node[K, V]) {
