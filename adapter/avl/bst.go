@@ -259,7 +259,11 @@ func (r *Root[K, V]) createEmptyNode(key K, parent *node[K, V]) *node[K, V] {
 
 // Search implements bst.BST.
 func (r *Root[K, V]) Search(key K) (bst.Node[K, V], error) {
-	return r.search(key)
+	res, err := r.search(key)
+	if err != nil || res == nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (r *Root[K, V]) search(key K) (*node[K, V], error) {
