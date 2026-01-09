@@ -501,10 +501,8 @@ Switch:
 		}
 		node.height = 0
 
-		parent := node.parent
 		node.parent = nil
-		node = parent
-		r.nodePool.Put(parent)
+		r.nodePool.Put(node)
 	}
 	r.updateHeight(node)
 

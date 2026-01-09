@@ -469,6 +469,45 @@ func (s *BSTTestSuite) TestUpdate() {
 	s.Equal([]int{10}, s.b.Node.Values())
 }
 
+func (s *BSTTestSuite) TestBugReinsertAfterDelete() {
+	comparer := comparer.NewComparer[string, int]()
+	b := avl.NewBST(false, 0, comparer)
+
+	s.NoError(b.Insert("hello", 1))
+	s.NoError(b.Insert("world", 2))
+	s.NoError(b.Insert("bloup", 3))
+
+	hello, err := b.Search("hello")
+	s.NoError(err)
+	s.Equal([]int{1}, hello.Values())
+	world, err := b.Search("world")
+	s.NoError(err)
+	s.Equal([]int{2}, world.Values())
+	bloup, err := b.Search("bloup")
+	s.NoError(err)
+	s.Equal([]int{3}, bloup.Values())
+
+	value := 2
+	s.NoError(b.Delete("world", &value))
+
+	world, err = b.Search("world")
+	s.NoError(err)
+	s.Nil(world)
+
+	hello, err = b.Search("hello")
+	s.NoError(err)
+	s.Equal([]int{1}, hello.Values())
+	bloup, err = b.Search("bloup")
+	s.NoError(err)
+	s.Equal([]int{3}, bloup.Values())
+
+	s.NoError(b.Insert("world", 4))
+
+	bloup, err = b.Search("world")
+	s.NoError(err)
+	s.Equal([]int{4}, bloup.Values())
+}
+
 func TestBSTTestSuite(t *testing.T) {
 	suite.Run(t, new(BSTTestSuite))
 }
