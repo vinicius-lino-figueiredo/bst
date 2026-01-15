@@ -2,6 +2,7 @@ package avl_test
 
 import (
 	"iter"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -506,6 +507,19 @@ func (s *BSTTestSuite) TestBugReinsertAfterDelete() {
 	bloup, err = b.Search("world")
 	s.NoError(err)
 	s.Equal([]int{4}, bloup.Values())
+}
+
+func (s *BSTTestSuite) TestBugDelete() {
+	b := avl.NewBST(true, 8, comparer.NewComparer[string, int]())
+	s.NoError(b.Insert("aaa", 1))
+	s.NoError(b.Insert("bbb", 2))
+	s.NoError(b.Insert("mmm", 12))
+	s.NoError(b.Insert("SSS", 14))
+
+	s.NoError(b.Delete("bbb", nil))
+
+	s.Subset(slices.Collect(b.GetAll()), []int{1, 12, 14})
+
 }
 
 func TestBSTTestSuite(t *testing.T) {
