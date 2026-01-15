@@ -505,6 +505,7 @@ Switch:
 		r.nodePool.Put(node)
 	}
 	r.updateHeight(node)
+	r.balance(node)
 
 	return nil
 }
@@ -541,7 +542,7 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(node *node[K, V]) {
 		if closestNode != node.lower {
 			closestNode.parent.greater = closestNode.lower
 		} else {
-			node.lower = nil
+			node.lower = closestNode.lower
 		}
 		closestNode.greater = nil
 		closestNode.lower = nil
@@ -556,7 +557,7 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(node *node[K, V]) {
 		if closestNode != node.greater {
 			closestNode.parent.lower = closestNode.greater
 		} else {
-			node.greater = nil
+			node.greater = closestNode.greater
 		}
 		r.nodePool.Put(closestNode)
 	}
