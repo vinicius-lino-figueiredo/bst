@@ -3,7 +3,6 @@ package avl
 
 import (
 	"iter"
-	"math/rand"
 	"slices"
 	"sync"
 
@@ -533,7 +532,8 @@ func (r *Root[K, V]) takePlace(node, victim *node[K, V]) {
 }
 
 func (r *Root[K, V]) deleteDoubleChildrenNode(node *node[K, V]) {
-	if rand.Float32() > 0.5 {
+	switch node.lower.height - node.greater.height {
+	case 1:
 		closestNode := r.getMax(node.lower)
 
 		// cloning closest value
@@ -548,7 +548,7 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(node *node[K, V]) {
 		closestNode.lower = nil
 		closestNode.parent = nil
 		r.nodePool.Put(closestNode)
-	} else {
+	default:
 		closestNode := r.getMin(node.greater)
 
 		// cloning closest value
