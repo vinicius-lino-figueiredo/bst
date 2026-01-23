@@ -531,36 +531,36 @@ func (r *Root[K, V]) takePlace(node, victim *node[K, V]) {
 	r.nodePool.Put(victim)
 }
 
-func (r *Root[K, V]) deleteDoubleChildrenNode(node *node[K, V]) {
-	switch node.lower.height - node.greater.height {
+func (r *Root[K, V]) deleteDoubleChildrenNode(n *node[K, V]) {
+	var closestNode *node[K, V]
+	switch n.lower.height - n.greater.height {
 	case 1:
-		closestNode := r.getMax(node.lower)
+		closestNode = r.getMax(n.lower)
 
 		// cloning closest value
-		node.key = closestNode.key
-		node.values = closestNode.values
-		if closestNode != node.lower {
+		n.key = closestNode.key
+		n.values = closestNode.values
+		if closestNode != n.lower {
 			closestNode.parent.greater = closestNode.lower
 		} else {
-			node.lower = closestNode.lower
+			n.lower = closestNode.lower
 		}
-		closestNode.greater = nil
-		closestNode.lower = nil
-		closestNode.parent = nil
-		r.nodePool.Put(closestNode)
 	default:
-		closestNode := r.getMin(node.greater)
+		closestNode = r.getMin(n.greater)
 
 		// cloning closest value
-		node.key = closestNode.key
-		node.values = closestNode.values
-		if closestNode != node.greater {
+		n.key = closestNode.key
+		n.values = closestNode.values
+		if closestNode != n.greater {
 			closestNode.parent.lower = closestNode.greater
 		} else {
-			node.greater = closestNode.greater
+			n.greater = closestNode.greater
 		}
-		r.nodePool.Put(closestNode)
 	}
+	closestNode.greater = nil
+	closestNode.lower = nil
+	closestNode.parent = nil
+	r.nodePool.Put(closestNode)
 }
 
 func (r *Root[K, V]) deleteValue(node *node[K, V], value *V) error {
