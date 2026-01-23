@@ -536,6 +536,22 @@ func (s *BSTTestSuite) TestBugInsert() {
 	s.NoError(b.Insert("tugulfuki1u8qakg", 2))
 }
 
+func (s *BSTTestSuite) TestBugUpdate() {
+	b := avl.NewBST(true, 8, comparer.NewComparer[string, int]())
+	s.NoError(b.Insert("pLpIIoiujV7SAhe7", 2))
+	s.NoError(b.Insert("v9ymkkZx38whDnD2", 2))
+	s.NoError(b.Insert("gXgfnib0AxkCzr47", 2))
+	s.NoError(b.Insert("zgZTLjviXUcISfK8", 2))
+	s.NoError(b.Insert("Xl9reoBNDUGs3Ya0", 2))
+	s.NoError(b.Insert("kq2KI3XsttDEr4Fo", 2))
+
+	s.NoError(b.Delete("pLpIIoiujV7SAhe7", nil))
+	s.NoError(b.Delete("v9ymkkZx38whDnD2", nil))
+
+	s.NoError(b.Insert("pLpIIoiujV7SAhe7", 2))
+	s.NoError(b.Insert("v9ymkkZx38whDnD2", 2))
+}
+
 func TestBSTTestSuite(t *testing.T) {
 	suite.Run(t, new(BSTTestSuite))
 }
