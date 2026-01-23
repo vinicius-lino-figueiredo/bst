@@ -522,6 +522,20 @@ func (s *BSTTestSuite) TestBugDelete() {
 
 }
 
+func (s *BSTTestSuite) TestBugInsert() {
+	b := avl.NewBST(true, 8, comparer.NewComparer[string, int]())
+	s.NoError(b.Insert("tugulfuki1u8qakg", 2))
+	s.NoError(b.Insert("awfvfvfqzpo6g507", 3))
+	s.NoError(b.Insert("8jwsg9ctcfrsdsrg", 2))
+	s.NoError(b.Insert("wRGZQAbJ8nO6Wa68", 3))
+
+	s.NoError(b.Delete("awfvfvfqzpo6g507", nil))
+	s.NoError(b.Delete("tugulfuki1u8qakg", nil))
+
+	s.NoError(b.Insert("awfvfvfqzpo6g507", 3))
+	s.NoError(b.Insert("tugulfuki1u8qakg", 2))
+}
+
 func TestBSTTestSuite(t *testing.T) {
 	suite.Run(t, new(BSTTestSuite))
 }
