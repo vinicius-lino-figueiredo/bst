@@ -500,8 +500,12 @@ Switch:
 		}
 		node.height = 0
 
+		r.updateHeight(node.parent)
+		r.balance(node.parent)
+
 		node.parent = nil
 		r.nodePool.Put(node)
+		return nil
 	}
 	r.updateHeight(node)
 	r.balance(node)
