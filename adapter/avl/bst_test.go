@@ -552,6 +552,29 @@ func (s *BSTTestSuite) TestBugUpdate() {
 	s.NoError(b.Insert("v9ymkkZx38whDnD2", 2))
 }
 
+func (s *BSTTestSuite) TestBugUpdate2() {
+	b := avl.NewBST(true, 8, comparer.NewComparer[string, int]())
+	s.NoError(b.Insert("ExUvUND2zz91BOhk", 0))
+	s.NoError(b.Insert("MsiIjuu71zDxnDip", 1))
+	s.NoError(b.Insert("KQ8gWetWLQXtuie9", 2))
+	s.NoError(b.Insert("o2iD47d0GCUbNFzR", 3))
+	s.NoError(b.Insert("2GJjFvcFsHvRPdra", 4))
+	s.NoError(b.Insert("65xkIyGdnMDUssdx", 5))
+	s.NoError(b.Insert("lljUre0r1P6BHoiJ", 6))
+
+	s.NoError(b.Delete("ExUvUND2zz91BOhk", nil))
+	s.NoError(b.Delete("KQ8gWetWLQXtuie9", nil))
+	s.NoError(b.Delete("MsiIjuu71zDxnDip", nil))
+	s.NoError(b.Insert("ExUvUND2zz91BOhk", 0))
+	s.NoError(b.Insert("KQ8gWetWLQXtuie9", 2))
+	s.NoError(b.Insert("MsiIjuu71zDxnDip", 1))
+
+	s.NoError(b.Delete("ExUvUND2zz91BOhk", nil))
+	s.NoError(b.Delete("MsiIjuu71zDxnDip", nil))
+	s.NoError(b.Delete("KQ8gWetWLQXtuie9", nil))
+
+}
+
 func TestBSTTestSuite(t *testing.T) {
 	suite.Run(t, new(BSTTestSuite))
 }

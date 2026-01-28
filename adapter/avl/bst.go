@@ -546,6 +546,9 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(n *node[K, V]) {
 		n.values = closestNode.values
 		if closestNode != n.lower {
 			closestNode.parent.greater = closestNode.lower
+			if closestNode.lower != nil {
+				closestNode.lower.parent = n.lower
+			}
 		} else {
 			n.lower = closestNode.lower
 			if n.lower != nil {
@@ -560,6 +563,9 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(n *node[K, V]) {
 		n.values = closestNode.values
 		if closestNode != n.greater {
 			closestNode.parent.lower = closestNode.greater
+			if closestNode.greater != nil {
+				closestNode.greater.parent = n.greater
+			}
 		} else {
 			n.greater = closestNode.greater
 			if n.greater != nil {
