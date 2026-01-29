@@ -49,6 +49,9 @@ type node[K any, V any] struct {
 
 // Greater implements [bst.Node].
 func (n *node[K, V]) Greater() bst.Node[K, V] {
+	if n.greater == nil {
+		return nil
+	}
 	return n.greater
 }
 
@@ -59,11 +62,17 @@ func (n *node[K, V]) Key() K {
 
 // Lower implements [bst.Node].
 func (n *node[K, V]) Lower() bst.Node[K, V] {
+	if n.lower == nil {
+		return nil
+	}
 	return n.lower
 }
 
 // Parent implements [bst.Node].
 func (n *node[K, V]) Parent() bst.Node[K, V] {
+	if n.parent == nil {
+		return nil
+	}
 	return n.parent
 }
 
@@ -547,7 +556,7 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(n *node[K, V]) {
 		if closestNode != n.lower {
 			closestNode.parent.greater = closestNode.lower
 			if closestNode.lower != nil {
-				closestNode.lower.parent = n.lower
+				closestNode.lower.parent = closestNode.parent
 			}
 		} else {
 			n.lower = closestNode.lower
@@ -564,7 +573,7 @@ func (r *Root[K, V]) deleteDoubleChildrenNode(n *node[K, V]) {
 		if closestNode != n.greater {
 			closestNode.parent.lower = closestNode.greater
 			if closestNode.greater != nil {
-				closestNode.greater.parent = n.greater
+				closestNode.greater.parent = closestNode.parent
 			}
 		} else {
 			n.greater = closestNode.greater
