@@ -575,6 +575,63 @@ func (s *BSTTestSuite) TestBugUpdate2() {
 
 }
 
+func (s *BSTTestSuite) TestBugUpdate3() {
+	b := avl.NewBST(false, 1, comparer.NewComparer[int, int]())
+
+	vals := []int{30, 15, 50, 10, 25, 40, 60, 5, 20, 28, 45, 27}
+	for _, v := range vals {
+		if err := b.Insert(v, v); err != nil {
+			s.FailNowf("", "Insert(%d) failed: %v", v, err)
+		}
+	}
+
+	if err := b.Delete(30, nil); err != nil {
+		s.FailNowf("", "Delete(30) failed: %v", err)
+	}
+
+	root := b.(*avl.Root[int, int])
+	if err := verifyParentPointers(&root.Node, nil); err != nil {
+		s.FailNowf("", "Parent pointer corruption: %v", err)
+	}
+
+	if err := b.Insert(26, 26); err != nil {
+		s.FailNowf("", "Insert(26) failed: %v", err)
+	}
+
+	if err := b.Delete(25, nil); err != nil {
+		s.FailNowf("", "Delete(25) failed: %v", err)
+	}
+}
+
+func verifyParentPointers[K, V any](n bst.Node[K, V], expectedParent bst.Node[K, V]) error {
+	if n == nil {
+		return nil
+	}
+	if n.Parent() != expectedParent {
+		return &parentError[K, V]{node: n.Key(), expected: expectedParent, got: n.Parent()}
+	}
+	if err := verifyParentPointers(n.Lower(), n); err != nil {
+		return err
+	}
+	return verifyParentPointers(n.Greater(), n)
+}
+
+type parentError[K any, V any] struct {
+	node     K
+	expected bst.Node[K, V]
+	got      bst.Node[K, V]
+}
+
+func (e *parentError[K, V]) Error() string {
+	if e.expected == nil {
+		return "node has wrong parent (expected nil)"
+	}
+	if e.got == nil {
+		return "node has wrong parent (got nil)"
+	}
+	return "node has wrong parent pointer"
+}
+
 func TestBSTTestSuite(t *testing.T) {
 	suite.Run(t, new(BSTTestSuite))
 }
